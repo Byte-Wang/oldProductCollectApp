@@ -47,7 +47,7 @@ class Index extends Backend
             $response = file_get_contents("https://search.ipaustralia.gov.au/trademarks/search/count/quick?q=".$brand);  
             $resultObj = json_decode($response,true);
 
-            if ($resultObj['count'] != null) {
+            if (isset($resultObj['count'])) {
                 $this->success('', [
                     'code' => 200,
                     'brand' => $brand,
@@ -96,7 +96,7 @@ class Index extends Backend
             
             $resultObj = json_decode($result,true);
             
-            if ($resultObj['numFound'] != null) {
+            if (isset($resultObj['numFound'])) {
                 $this->success('', [
                     'code' => 200,
                     'brand' => $brand,
