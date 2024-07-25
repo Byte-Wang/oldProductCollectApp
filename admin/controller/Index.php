@@ -47,13 +47,13 @@ class Index extends Backend
             $response = file_get_contents("https://search.ipaustralia.gov.au/trademarks/search/count/quick?q=".$brand);  
             $resultObj = json_decode($response,true);
 
-            if (property_exists($resultObj,'count')) {
+            if ($resultObj['count'] != null) {
                 $this->success('', [
                     'code' => 200,
                     'brand' => $brand,
                     'region' => $region,
                     'result' => $resultObj,
-                    'count' => $resultObj->count
+                    'count' => $resultObj['count']
                 ]);
             } else {
                 $this->success('', [
@@ -87,13 +87,13 @@ class Index extends Backend
             
             $resultObj = json_decode($result,true);
             
-            if (property_exists($resultObj,'numFound')) {
+            if ($resultObj['numFound'] != null) {
                 $this->success('', [
                     'code' => 200,
                     'brand' => $brand,
                     'region' => $region,
                     'result' => $resultObj,
-                    'count' => $resultObj->numFound
+                    'count' => $resultObj['numFound']
                 ]);
             } else {
                 $this->success('', [
