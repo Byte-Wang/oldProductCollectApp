@@ -53,7 +53,7 @@ class Index extends Backend
                     'brand' => $brand,
                     'region' => $region,
                     'result' => $resultObj,
-                    'count' => $resultObj->count;
+                    'count' => $resultObj->count
                 ]);
             } else {
                 $this->success('', [
@@ -93,7 +93,7 @@ class Index extends Backend
                     'brand' => $brand,
                     'region' => $region,
                     'result' => $resultObj,
-                    'count' => $resultObj->numFound;
+                    'count' => $resultObj->numFound
                 ]);
             } else {
                 $this->success('', [
