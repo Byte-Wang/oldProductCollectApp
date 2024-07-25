@@ -38,6 +38,14 @@ class Index extends Backend
             ]
         ]);
     }
+
+    public function checkBrandName(){
+        $brand = $this->request->get('brand');
+        $this->success(__('Login succeeded!'), [
+            'brand' => $brand,
+            'count' => 0
+        ]);
+    }
     
     public function login()
     {
