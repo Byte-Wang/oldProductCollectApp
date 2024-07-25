@@ -66,7 +66,10 @@ class Index extends Backend
 
             
         } elseif ($region == 'ca') {
-            $data = array(
+
+
+            $url = "https://ised-isde.canada.ca/cipo/trademark-search/srch";  
+            $postData = [  
                 "domIntlFilter" => "1",
                 "searchfield1" => "all",
                 "textfield1" => $brand,
@@ -74,16 +77,22 @@ class Index extends Backend
                 "maxReturn" => "10",
                 "nicetextfield1" => null,
                 "cipotextfield1" => null
-            );
-            $query = http_build_query($data);
-            $options['http'] = array(
-                'timeout'=>60,
-                'method' => 'POST',
-                'header' => 'Content-type:application/json',
-                'content' => $query
-            );
-            $context = stream_context_create($options);
-            $result=file_get_contents("https://ised-isde.canada.ca/cipo/trademark-search/srch",false,$context);
+            ];  
+            $postDataJson = json_encode($postData);  
+
+            $ch = curl_init();  
+            curl_setopt($ch, CURLOPT_URL, $url);  
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);  
+            curl_setopt($ch, CURLOPT_POST, true);  
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [  
+                'Content-Type: application/json',  
+                'Content-Length: ' . strlen($postDataJson)  
+            ]);  
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson); 
+ 
+            $result = curl_exec($ch);  
+            curl_close($ch);  
+ 
             
             $resultObj = json_decode($result,true);
             
