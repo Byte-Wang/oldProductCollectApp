@@ -47,11 +47,63 @@ class Index extends Backend
             $response = file_get_contents("https://search.ipaustralia.gov.au/trademarks/search/count/quick?q=".$brand);  
             $resultObj = json_decode($response,true);
 
-            $this->success('', [
-                'brand' => $brand,
-                'region' => $region,
-                'resule' => $resultObj
-            ]);
+            if (property_exists($resultObj,'count')) {
+                $this->success('', [
+                    'code' => 200,
+                    'brand' => $brand,
+                    'region' => $region,
+                    'result' => $resultObj,
+                    'count' => $resultObj->count;
+                ]);
+            } else {
+                $this->success('', [
+                    'code' => 400,
+                    'brand' => $brand,
+                    'region' => $region,
+                    'resule' => $resultObj
+                ]);
+            }
+
+            
+        } elseif ($region == 'ca') {
+            $data = array(
+                "domIntlFilter" => "1",
+                "searchfield1" => "all",
+                "textfield1" => $brand,
+                "display" => "list",
+                "maxReturn" => "10",
+                "nicetextfield1" => null,
+                "cipotextfield1" => null
+            );
+            $query = http_build_query($data);
+            $options['http'] = array(
+                'timeout'=>60,
+                'method' => 'POST',
+                'header' => 'Content-type:application/x-www-form-urlencoded',
+                'content' => $query
+            );
+            $context = stream_context_create($options);
+            $result=file_get_contents("https://ised-isde.canada.ca/cipo/trademark-search/srch",false,$context);
+            
+            $resultObj = json_decode($result,true);
+            
+            if (property_exists($resultObj,'numFound')) {
+                $this->success('', [
+                    'code' => 200,
+                    'brand' => $brand,
+                    'region' => $region,
+                    'result' => $resultObj,
+                    'count' => $resultObj->numFound;
+                ]);
+            } else {
+                $this->success('', [
+                    'code' => 400,
+                    'brand' => $brand,
+                    'region' => $region,
+                    'resule' => $resultObj
+                ]);
+            }
+
         }
 
        
