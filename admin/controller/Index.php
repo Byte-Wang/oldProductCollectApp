@@ -41,10 +41,20 @@ class Index extends Backend
 
     public function checkBrandName(){
         $brand = $this->request->get('brand');
-        $this->success(__('Login succeeded!'), [
-            'brand' => $brand,
-            'count' => 0
-        ]);
+        $region = $this->request->get('region');
+
+        if ($region == 'au') {
+            $response = file_get_contents("https://search.ipaustralia.gov.au/trademarks/search/count/quick?q=".$brand);  
+            $resultObj = json_decode($result,true);
+
+            $this->success('', [
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => $resultObj
+            ]);
+        }
+
+       
     }
     
     public function login()
