@@ -79,7 +79,7 @@ class Index extends Backend
             $options['http'] = array(
                 'timeout'=>60,
                 'method' => 'POST',
-                'header' => 'Content-type:application/x-www-form-urlencoded',
+                'header' => 'Content-type:application/json',
                 'content' => $query
             );
             $context = stream_context_create($options);
