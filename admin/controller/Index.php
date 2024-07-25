@@ -45,7 +45,7 @@ class Index extends Backend
 
         if ($region == 'au') {
             $response = file_get_contents("https://search.ipaustralia.gov.au/trademarks/search/count/quick?q=".$brand);  
-            $resultObj = json_decode($result,true);
+            $resultObj = json_decode($response,true);
 
             $this->success('', [
                 'brand' => $brand,
