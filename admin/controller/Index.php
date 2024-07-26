@@ -14,7 +14,7 @@ use app\admin\model\AdminLog;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice'];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice','noNeedPermission'];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName'];
 
     public function index()
     {
