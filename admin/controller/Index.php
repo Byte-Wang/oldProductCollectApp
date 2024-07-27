@@ -55,7 +55,7 @@ class Index extends Backend
                 'brand' => $brand,
                 'region' => $region,
                 'resule' => null,
-                'desc' => "不支持的版本"
+                'desc' => "版本过低，请先联系管理员"
             ]);
             return;
         }
