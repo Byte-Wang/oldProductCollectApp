@@ -39,9 +39,25 @@ class Index extends Backend
         ]);
     }
 
+    function checkVersion($version){
+        return $version == '20240727161055';
+    }
+
     public function checkBrandName(){
         $brand = $this->request->get('brand');
         $region = $this->request->get('region');
+        $version = $this->request->get('version');
+
+        if (!checkVersion($version)) {
+            $this->success('', [
+                'code' => 201,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => null,
+                'desc' => "不支持的版本"
+            ]);
+            return;
+        }
 
         if ($region == 'au') {
             $response = file_get_contents("https://search.ipaustralia.gov.au/trademarks/search/count/quick?q=".$brand);  
