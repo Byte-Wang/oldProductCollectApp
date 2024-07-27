@@ -13,7 +13,7 @@ use app\admin\model\AdminLog;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','noLoginCheckBrandName'];
+    protected $noNeedLogin = ['logout', 'login', 'notice','checkBrandName'];
     protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName'];
 
     public function index()
@@ -43,9 +43,6 @@ class Index extends Backend
         return $version == '20240727161055';
     }
 
-    public function noLoginCheckBrandName(){
-        checkBrandName();
-    }
 
     public function checkBrandName(){
         $brand = $this->request->get('brand');
