@@ -61,26 +61,67 @@ class Index extends Backend
         }
 
         if ($region == 'au') {
-            $response = file_get_contents("https://search.ipaustralia.gov.au/trademarks/search/count/quick?q=".$brand);  
-            $resultObj = json_decode($response,true);
 
-            if (isset($resultObj['count'])) {
-                $this->success('', [
-                    'code' => 200,
-                    'brand' => $brand,
-                    'region' => $region,
-                    'result' => $resultObj,
-                    'count' => $resultObj['count']
-                ]);
-            } else {
+            $url = "https://search.ipaustralia.gov.au/trademarks/search/count/quick?q=".urlencode($brand);  
+            
+            // 初始化 cURL 会话  
+            $ch = curl_init();  
+            
+            // 设置 cURL 选项  
+            curl_setopt($ch, CURLOPT_URL, $url);            // 要访问的 URL  
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 将 curl_exec() 获取的信息以文件流的形式返回，而不是直接输出  
+            curl_setopt($ch, CURLOPT_HEADER, false);        // 不需要响应头  
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 对认证证书来源的检查，0 表示阻止对证书合法性的检查  
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'); // 设置 User-Agent  
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);           // 设置超时限制防止死循环  
+            
+            // 执行 cURL 会话  
+            $response = curl_exec($ch);  
+            
+            // 检查是否有错误发生  
+            if(curl_errno($ch)){  
                 $this->success('', [
                     'code' => 400,
                     'brand' => $brand,
                     'region' => $region,
-                    'resule' => $resultObj
+                    'resule' => null,
+                    'desc' => "接口请求失败"
                 ]);
-            }
-
+                return;
+            }  
+            
+            // 关闭 cURL 会话  
+            curl_close($ch);  
+            
+            // 处理响应  
+            if ($response !== false) {  
+                $resultObj = json_decode($response,true);
+                if (isset($resultObj['count'])) {
+                    $this->success('', [
+                        'code' => 200,
+                        'brand' => $brand,
+                        'region' => $region,
+                        'result' => $resultObj,
+                        'count' => $resultObj['count']
+                    ]);
+                } else {
+                    $this->success('', [
+                        'code' => 400,
+                        'brand' => $brand,
+                        'region' => $region,
+                        'resule' => $resultObj
+                    ]);
+                }
+            } else {  
+                $this->success('', [
+                    'code' => 400,
+                    'brand' => $brand,
+                    'region' => $region,
+                    'resule' => null,
+                    'desc' => "接口 请求失败"
+                ]);
+                return;
+            }  
             
         } elseif ($region == 'ca') {
 
