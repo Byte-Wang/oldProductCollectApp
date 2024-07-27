@@ -39,7 +39,7 @@ class Index extends Backend
         ]);
     }
 
-    function checkVersion($version){
+    public function checkVersion($version){
         return $version == '20240727161055';
     }
 
