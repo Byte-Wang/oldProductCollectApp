@@ -49,7 +49,7 @@ class Index extends Backend
         $region = $this->request->get('region');
         $version = $this->request->get('version');
 
-        if (!checkVersion($version)) {
+        if (!$this->checkVersion($version)) {
             $this->success('', [
                 'code' => 201,
                 'brand' => $brand,
