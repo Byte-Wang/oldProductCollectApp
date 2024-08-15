@@ -13,7 +13,7 @@ use app\admin\model\AdminLog;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice'];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA'];
     protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName'];
 
     public function index()
@@ -41,6 +41,185 @@ class Index extends Backend
 
     public function checkVersion($version){
         return $version == '20240727161055';
+    }
+
+    public function getFBA(){
+        $region = $this->request->get('region');
+        $asin = $this->request->get('asin');
+
+        $countryCode = '';
+        $locale = '';
+        if ($region == 'ca' || $region == 'CA') {
+            $countryCode = 'CA';
+            $locale = 'en-CA';
+        }
+
+        $productMatchResult =   $this->sendGetRequest("https://sellercentral.amazon.com/rcpublic/productmatch?countryCode=".$countryCode."&searchKey=".$asin."&locale=".$locale);
+        $productMatchResultObj = json_decode($productMatchResult,true);
+
+        if (!$productMatchResultObj['succeed']) {
+            $this->success('', [
+                'code' => 400,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => $productMatchResultObj,
+                'desc' => "查询产品接口失败"
+            ]);
+            return;
+        }
+        
+        $otherProducts = $productMatchResultObj["data"]["otherProducts"];
+        if ($otherProducts["totalProductCount"] == 0) {
+            $this->success('', [
+                'code' => 401,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => $productMatchResultObj,
+                'desc' => "查询产品接口结果为空"
+            ]);
+            return;
+        }
+
+        $products = $otherProducts["products"];
+        $matchProduct = null;
+        foreach ($products as $product) {  
+            if ($product->asion === $asin) {  
+                $matchProduct = $product; // 如果asion匹配，则将该对象添加到结果数组中  
+            }  
+        }  
+
+        if ($matchProduct == null) {
+            $this->success('', [
+                'code' => 402,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => $productMatchResultObj,
+                'desc' => "查询产品接口结果没有匹配的产品"
+            ]);
+            return;
+        }
+
+        $matchAsion = $matchProduct["asin"];
+        $groupName = $matchProduct["gl"];
+        $length = $matchProduct["length"];
+        $weight = $matchProduct["weight"];
+        $weightUnit = $matchProduct["weightUnit"];
+        $width = $matchProduct["width"];
+        $height = $matchProduct["height"];
+        $dimensionUnit = $matchProduct["dimensionUnit"];
+
+
+        $getadditionalpronductinfoResult =  $this->sendGetRequest("https://sellercentral.amazon.com/rcpublic/getadditionalpronductinfo?countryCode=".$countryCode."&asin=".$matchAsion."&fnsku=&searchType=GENERAL&locale=".locale);
+        $getadditionalpronductinfoResultObj = json_decode($productMatchResult,true);
+
+        $price = 0;
+        $priceCurrency = "";
+        $shipping = 0;
+        $shippingCurrency = "";
+
+        if (!$getadditionalpronductinfoResultObj['succeed']) {
+            $this->success('', [
+                'code' => 405,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => $getadditionalpronductinfoResultObj,
+                'desc' => "查价格接口失败"
+            ]);
+            return;
+        }
+
+        $price = $getadditionalpronductinfoResultObj["data"]["price"]["amount"];
+        $priceCurrency = $getadditionalpronductinfoResultObj["data"]["price"]["currency"];
+        $shipping = $getadditionalpronductinfoResultObj["data"]["shipping"]["amount"];
+        $shippingCurrency = $getadditionalpronductinfoResultObj["data"]["shipping"]["currency"];
+
+
+        $programItemListResult = $this->sendGetRequest("https://sellercentral.amazon.com/rcpublic/getprograms?countryCode=".$countryCode."&asin=".$asin."&locale=".$locale);
+        $programItemListResultObj = json_decode($reprogramItemListResultsponse,true);
+
+        if (!$programItemListResultObj['succeed']) {
+            $this->success('', [
+                'code' => 406,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => $programItemListResultObj,
+                'desc' => "查规计费则接口失败"
+            ]);
+            return;
+        }
+
+        $programInfoList = $programItemListResultOb['programInfoList'];
+        $programNameList = [];
+        foreach ($programInfoList as $programInfo) {  
+            if ($programNameList["name"] == "Core") {
+                $programNameList[] = "Core#0";
+            } 
+            if ($programNameList["name"] == "MFN") {
+                $programNameList[] = "MFN#1";
+            } 
+        }  
+
+        if (empty($programNameList)){
+            $this->success('', [
+                'code' => 407,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => $programItemListResultObj,
+                'desc' => "查规计费则接口为空"
+            ]);
+            return;
+        }
+
+        // 获取费用
+        $params = [
+            "countryCode" => "CA",
+            "locale" => $locale,
+            "itemInfo" => [
+                "asin" => $asin,
+                "glProductGroupName" => $groupName."",
+                "packageLength" => $length."",
+                "packageWidth" => $width."",
+                "packageHeight" => $height."",
+                "dimensionUnit" => $dimensionUnit."",
+                "packageWeight" => $weight."",
+                "weightUnit" => $weightUnit."",
+                "afnPriceStr" => $price."",
+                "mfnPriceStr" => $price."",
+                "mfnShippingPriceStr" => $shipping."",
+                "currency" => $priceCurrency."",
+                "isNewDefined" => false  
+            ],
+            "programIdList" => $programNameList,
+            "programParamMap" => (Object)[],
+        ];
+
+        $feesResult = $this->sendPostRequest("https://sellercentral.amazon.com/rcpublic/getfees");
+        $feesResultObj = json_decode($feesResult,true);
+
+        if (!$feesResultObj['succeed']) {
+            $this->success('', [
+                'code' => 406,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => $feesResultObj,
+                'desc' => "查规费用接口失败"
+            ]);
+            return;
+        }
+
+        $storageFee =  $feesResultObj["data"]["programFeeResultMap"]["Core#0"]["perUnitNonPeakStorageFee"]["total"]["amount"];
+        $amazonFee = $feesResultObj["data"]["programFeeResultMap"]["MFN#1"]["otherFeeInfoMap"]["ReferralFee"]["total"]["amount"];
+        $FulfillmentFee = $feesResultObj["data"]["programFeeResultMap"]["Core#0"]["otherFeeInfoMap"]["FulfillmentFee"]["total"]["amount"];
+
+        $total = $storageFee + $amazonFee + $FulfillmentFee ; 
+        $this->success('', [
+            'code' => 406,
+            'brand' => $brand,
+            'region' => $region,
+            'resule' => $feesResultObj,
+            'fba' => $total,
+            'desc' => ""
+        ]);
     }
 
 
@@ -175,7 +354,47 @@ class Index extends Backend
 
        
     }
+
+    public function sendPostRequest($url,$postData){
+        $postDataJson = json_encode($postData);  
+
+        $ch = curl_init();  
+        curl_setopt($ch, CURLOPT_URL, $url);  
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);  
+        curl_setopt($ch, CURLOPT_POST, true);  
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [  
+            'Content-Type: application/json',  
+            'Content-Length: ' . strlen($postDataJson)  
+        ]);  
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson); 
+
+        $result = curl_exec($ch);  
+        curl_close($ch);  
+
+        return $result;
+    }
     
+    public function sendGetRequest($url){
+            // 初始化 cURL 会话  
+            $ch = curl_init();  
+            
+            // 设置 cURL 选项  
+            curl_setopt($ch, CURLOPT_URL, $url);            // 要访问的 URL  
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 将 curl_exec() 获取的信息以文件流的形式返回，而不是直接输出  
+            curl_setopt($ch, CURLOPT_HEADER, false);        // 不需要响应头  
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 对认证证书来源的检查，0 表示阻止对证书合法性的检查  
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'); // 设置 User-Agent  
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);           // 设置超时限制防止死循环  
+            
+            // 执行 cURL 会话  
+            $response = curl_exec($ch);  
+            
+            // 关闭 cURL 会话  
+            curl_close($ch);  
+
+            return $response;
+    }
+
     public function login()
     {
         // 检查登录态
