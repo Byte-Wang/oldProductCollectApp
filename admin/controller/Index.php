@@ -142,7 +142,7 @@ class Index extends Backend
                 'code' => 406,
                 'asin' => $asin,
                 'region' => $region,
-                'resule' => $programItemListResultObj,
+                'result' => $programItemListResult,
                 'desc' => "查规计费则接口失败"
             ]);
             return;
