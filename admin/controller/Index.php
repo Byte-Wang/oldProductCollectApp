@@ -60,7 +60,7 @@ class Index extends Backend
         if (!$productMatchResultObj['succeed']) {
             $this->success('', [
                 'code' => 400,
-                'brand' => $brand,
+                'asin' => $asin,
                 'region' => $region,
                 'resule' => $productMatchResultObj,
                 'desc' => "查询产品接口失败"
@@ -120,7 +120,7 @@ class Index extends Backend
         if (!$getadditionalpronductinfoResultObj['succeed']) {
             $this->success('', [
                 'code' => 405,
-                'brand' => $brand,
+                'asin' => $asin,
                 'region' => $region,
                 'resule' => $getadditionalpronductinfoResultObj,
                 'desc' => "查价格接口失败"
@@ -140,7 +140,7 @@ class Index extends Backend
         if (!$programItemListResultObj['succeed']) {
             $this->success('', [
                 'code' => 406,
-                'brand' => $brand,
+                'asin' => $asin,
                 'region' => $region,
                 'resule' => $programItemListResultObj,
                 'desc' => "查规计费则接口失败"
@@ -162,7 +162,7 @@ class Index extends Backend
         if (empty($programNameList)){
             $this->success('', [
                 'code' => 407,
-                'brand' => $brand,
+                'asin' => $asin,
                 'region' => $region,
                 'resule' => $programItemListResultObj,
                 'desc' => "查规计费则接口为空"
