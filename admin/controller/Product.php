@@ -31,7 +31,7 @@ class Product extends Backend
 
     protected $noNeedPermission = ['calculateRatio', 'select', 'allotSelect'];
 
-    protected $noNeedLogin = ['test'];
+    protected $noNeedLogin = ['test','checkAsin'];
 
     public function initialize()
     {
