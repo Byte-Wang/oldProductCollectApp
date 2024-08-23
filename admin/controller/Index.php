@@ -47,178 +47,31 @@ class Index extends Backend
         $region = $this->request->get('region');
         $asin = $this->request->get('asin');
 
-        $countryCode = '';
-        $locale = '';
+        $marketplaceId = '';
         if ($region == 'ca' || $region == 'CA') {
-            $countryCode = 'CA';
-            $locale = 'en-CA';
+            $marketplaceId = 'A2EUQ1WTGCTBG2';
         }
 
-        $productMatchResult =   $this->sendGetRequest("https://sellercentral.amazon.com/rcpublic/productmatch?countryCode=".$countryCode."&searchKey=".$asin."&locale=".$locale);
-        $productMatchResultObj = json_decode($productMatchResult,true);
+        $getFbaResult =   $this->sendGetRequest("https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId="+$marketplaceId+"&asin="+$asin+"&amount=0.00");
+        $getFbaResultObj = json_decode($getFbaResult,true);
 
-        if (!$productMatchResultObj['succeed']) {
+        if (!$getFbaResultObj || !$$getFbaResultObj['status'] || $$getFbaResultObj['status'] != 1) {
             $this->success('', [
                 'code' => 400,
                 'asin' => $asin,
                 'region' => $region,
-                'resule' => $productMatchResultObj,
+                'resule' => $getFbaResultOb,
                 'desc' => "查询产品接口失败"
             ]);
             return;
         }
-        
-        $otherProducts = $productMatchResultObj["data"]["otherProducts"];
-        if ($otherProducts["totalProductCount"] == 0) {
-            $this->success('', [
-                'code' => 401,
-                'brand' => $brand,
-                'region' => $region,
-                'resule' => $productMatchResultObj,
-                'desc' => "查询产品接口结果为空"
-            ]);
-            return;
-        }
 
-        $products = $otherProducts["products"];
-        $matchProduct = null;
-        foreach ($products as $product) {  
-            if ($product->asion === $asin) {  
-                $matchProduct = $product; // 如果asion匹配，则将该对象添加到结果数组中  
-            }  
-        }  
-
-        if ($matchProduct == null) {
-            $this->success('', [
-                'code' => 402,
-                'brand' => $brand,
-                'region' => $region,
-                'resule' => $productMatchResultObj,
-                'desc' => "查询产品接口结果没有匹配的产品"
-            ]);
-            return;
-        }
-
-        $matchAsion = $matchProduct["asin"];
-        $groupName = $matchProduct["gl"];
-        $length = $matchProduct["length"];
-        $weight = $matchProduct["weight"];
-        $weightUnit = $matchProduct["weightUnit"];
-        $width = $matchProduct["width"];
-        $height = $matchProduct["height"];
-        $dimensionUnit = $matchProduct["dimensionUnit"];
-
-
-        $getadditionalpronductinfoResult =  $this->sendGetRequest("https://sellercentral.amazon.com/rcpublic/getadditionalpronductinfo?countryCode=".$countryCode."&asin=".$matchAsion."&fnsku=&searchType=GENERAL&locale=".locale);
-        $getadditionalpronductinfoResultObj = json_decode($productMatchResult,true);
-
-        $price = 0;
-        $priceCurrency = "";
-        $shipping = 0;
-        $shippingCurrency = "";
-
-        if (!$getadditionalpronductinfoResultObj['succeed']) {
-            $this->success('', [
-                'code' => 405,
-                'asin' => $asin,
-                'region' => $region,
-                'resule' => $getadditionalpronductinfoResultObj,
-                'desc' => "查价格接口失败"
-            ]);
-            return;
-        }
-
-        $price = $getadditionalpronductinfoResultObj["data"]["price"]["amount"];
-        $priceCurrency = $getadditionalpronductinfoResultObj["data"]["price"]["currency"];
-        $shipping = $getadditionalpronductinfoResultObj["data"]["shipping"]["amount"];
-        $shippingCurrency = $getadditionalpronductinfoResultObj["data"]["shipping"]["currency"];
-
-
-        $programItemListResult = $this->sendGetRequest("https://sellercentral.amazon.com/rcpublic/getprograms?countryCode=".$countryCode."&asin=".$asin."&locale=".$locale);
-        $programItemListResultObj = json_decode($reprogramItemListResultsponse,true);
-
-        if (!$programItemListResultObj['succeed']) {
-            $this->success('', [
-                'code' => 406,
-                'asin' => $asin,
-                'region' => $region,
-                'result' => $programItemListResult,
-                'desc' => "查规计费则接口失败"
-            ]);
-            return;
-        }
-
-        $programInfoList = $programItemListResultOb['programInfoList'];
-        $programNameList = [];
-        foreach ($programInfoList as $programInfo) {  
-            if ($programNameList["name"] == "Core") {
-                $programNameList[] = "Core#0";
-            } 
-            if ($programNameList["name"] == "MFN") {
-                $programNameList[] = "MFN#1";
-            } 
-        }  
-
-        if (empty($programNameList)){
-            $this->success('', [
-                'code' => 407,
-                'asin' => $asin,
-                'region' => $region,
-                'resule' => $programItemListResultObj,
-                'desc' => "查规计费则接口为空"
-            ]);
-            return;
-        }
-
-        // 获取费用
-        $params = [
-            "countryCode" => "CA",
-            "locale" => $locale,
-            "itemInfo" => [
-                "asin" => $asin,
-                "glProductGroupName" => $groupName."",
-                "packageLength" => $length."",
-                "packageWidth" => $width."",
-                "packageHeight" => $height."",
-                "dimensionUnit" => $dimensionUnit."",
-                "packageWeight" => $weight."",
-                "weightUnit" => $weightUnit."",
-                "afnPriceStr" => $price."",
-                "mfnPriceStr" => $price."",
-                "mfnShippingPriceStr" => $shipping."",
-                "currency" => $priceCurrency."",
-                "isNewDefined" => false  
-            ],
-            "programIdList" => $programNameList,
-            "programParamMap" => (Object)[],
-        ];
-
-        $feesResult = $this->sendPostRequest("https://sellercentral.amazon.com/rcpublic/getfees");
-        $feesResultObj = json_decode($feesResult,true);
-
-        if (!$feesResultObj['succeed']) {
-            $this->success('', [
-                'code' => 406,
-                'brand' => $brand,
-                'region' => $region,
-                'resule' => $feesResultObj,
-                'desc' => "查规费用接口失败"
-            ]);
-            return;
-        }
-
-        $storageFee =  $feesResultObj["data"]["programFeeResultMap"]["Core#0"]["perUnitNonPeakStorageFee"]["total"]["amount"];
-        $amazonFee = $feesResultObj["data"]["programFeeResultMap"]["MFN#1"]["otherFeeInfoMap"]["ReferralFee"]["total"]["amount"];
-        $FulfillmentFee = $feesResultObj["data"]["programFeeResultMap"]["Core#0"]["otherFeeInfoMap"]["FulfillmentFee"]["total"]["amount"];
-
-        $total = $storageFee + $amazonFee + $FulfillmentFee ; 
         $this->success('', [
-            'code' => 406,
+            'code' => 200,
             'brand' => $brand,
             'region' => $region,
-            'resule' => $feesResultObj,
-            'fba' => $total,
-            'desc' => ""
+            'result' => $getFbaResultObj,
+            'desc' => "查询成功"
         ]);
     }
 
