@@ -13,8 +13,8 @@ use app\admin\model\AdminLog;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA'];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName'];
+    protected $noNeedLogin = ['logout', 'login', 'notice'];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA'];
 
     public function index()
     {
@@ -50,12 +50,18 @@ class Index extends Backend
         $marketplaceId = '';
         if ($region == 'ca' || $region == 'CA') {
             $marketplaceId = 'A2EUQ1WTGCTBG2';
+        } else if ($region == 'us' || $region == 'US') {
+            $marketplaceId = 'ATVPDKIKX0DER';
+        } else if ($region == 'au' || $region == 'AU') {
+            $marketplaceId = 'A39IBJ37TRP1C6';
+        } else if ($region == 'jp' || $region == 'JP') {
+            $marketplaceId = 'A1VC38T7YXB528';
         }
 
         $getFbaResult =   $this->sendGetRequest("https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00");
         $getFbaResultObj = json_decode($getFbaResult,true);
 
-        if (!$getFbaResultObj || !$$getFbaResultObj['status'] || $$getFbaResultObj['status'] != 1) {
+        if (!$getFbaResultObj || !$$getFbaResultObj['status'] || $getFbaResultObj['status'] != 1) {
             $this->success('', [
                 'code' => 400,
                 'asin' => $asin,
