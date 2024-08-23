@@ -52,7 +52,7 @@ class Index extends Backend
             $marketplaceId = 'A2EUQ1WTGCTBG2';
         }
 
-        $getFbaResult =   $this->sendGetRequest("https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId="+$marketplaceId+"&asin="+$asin+"&amount=0.00");
+        $getFbaResult =   $this->sendGetRequest("https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00");
         $getFbaResultObj = json_decode($getFbaResult,true);
 
         if (!$getFbaResultObj || !$$getFbaResultObj['status'] || $$getFbaResultObj['status'] != 1) {
