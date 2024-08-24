@@ -75,7 +75,7 @@ class Index extends Backend
         $getFbaResult =   $this->sendGetRequest("https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00");
         $getFbaResultObj = json_decode($getFbaResult,true);
 
-        if (!$getFbaResultObj || !$$getFbaResultObj['status'] || $getFbaResultObj['status'] != 1) {
+        if (!$getFbaResultObj || !$getFbaResultObj['status'] || $getFbaResultObj['status'] != 1) {
             $this->success('', [
                 'code' => 400,
                 'asin' => $asin,
@@ -88,7 +88,7 @@ class Index extends Backend
 
         $this->success('', [
             'code' => 200,
-            'brand' => $brand,
+            'asin' => $asin,
             'region' => $region,
             'result' => $getFbaResultObj,
             'desc' => "查询成功"
