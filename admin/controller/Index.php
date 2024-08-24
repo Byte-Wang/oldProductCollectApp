@@ -48,14 +48,28 @@ class Index extends Backend
         $asin = $this->request->get('asin');
 
         $marketplaceId = '';
-        if ($region == 'ca' || $region == 'CA') {
+        if ($region == 'ca' || $region == 'CA') { // 加拿大
             $marketplaceId = 'A2EUQ1WTGCTBG2';
-        } else if ($region == 'us' || $region == 'US') {
+        } else if ($region == 'us' || $region == 'US') { // 美国
             $marketplaceId = 'ATVPDKIKX0DER';
-        } else if ($region == 'au' || $region == 'AU') {
+        } else if ($region == 'au' || $region == 'AU') { // 澳大利亚
             $marketplaceId = 'A39IBJ37TRP1C6';
-        } else if ($region == 'jp' || $region == 'JP') {
+        } else if ($region == 'jp' || $region == 'JP') { // 日本
             $marketplaceId = 'A1VC38T7YXB528';
+        } else if ($region == 'uk' || $region == 'UK' || $region == 'gb' || $region == 'GB') { // 英国
+            $marketplaceId = 'A1F83G8C2ARO7P';
+        }else if ($region == 'mx' || $region == 'MX') { // 墨西哥
+            $marketplaceId = 'A1AM78C64UM0Y8';
+        }else if ($region == 'de' || $region == 'DE') { // 德国
+            $marketplaceId = 'A1PA6795UKMFR9';
+        }else if ($region == 'es' || $region == 'ES') { // 西班牙
+            $marketplaceId = 'A1RKKUPIHCS9HS';
+        }else if ($region == 'fr' || $region == 'FR') { // 法国
+            $marketplaceId = 'A13V1IB3VIYZZH';
+        }else if ($region == 'it' || $region == 'IT') { // 意大利
+            $marketplaceId = 'APJ6JRA9NG5V4';
+        }else if ($region == 'in' || $region == 'IN') { // 印度
+            $marketplaceId = 'A21TJRUUN4KGV';
         }
 
         $getFbaResult =   $this->sendGetRequest("https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00");
