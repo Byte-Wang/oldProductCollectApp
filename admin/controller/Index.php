@@ -13,7 +13,7 @@ use app\admin\model\AdminLog;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice'];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA'];
     protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA'];
 
     public function index()
