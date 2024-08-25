@@ -13,7 +13,7 @@ use app\admin\model\AdminLog;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA'];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName'];
     protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA'];
 
     public function index()
@@ -223,6 +223,21 @@ class Index extends Backend
                 ]);
             }
 
+        } elseif ($region == 'uk') {
+            $params = [
+                "pageNum" => 1,
+                "pageSize" => 10,
+                "gsFor" => "",
+                "internationalClasses" => [],
+                "approximateClass" => [],
+                "validFlag" => "1",
+                "country" => "2",
+                "markElement" => $brand,
+                "searchScenes" => 0
+            ];
+            $result = $this->sendPostRequest('https://gateway.ippmaster.com/ipr/trademark/search',$params);
+
+            var_dump($result);
         }
 
        
