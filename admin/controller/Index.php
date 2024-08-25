@@ -235,9 +235,38 @@ class Index extends Backend
                 "markElement" => $brand,
                 "searchScenes" => 0
             ];
-            $result = $this->sendPostRequest('https://gateway.ippmaster.com/ipr/trademark/search',$params);
+            // $result = $this->sendPostRequest('https://gateway.ippmaster.com/ipr/trademark/search',$params);
+            $url = "https://ised-isde.canada.ca/cipo/trademark-search/srch";  
+            $postData = [
+                "pageNum" => 1,
+                "pageSize" => 10,
+                "gsFor" => "",
+                "internationalClasses" => [],
+                "approximateClass" => [],
+                "validFlag" => "1",
+                "country" => "2",
+                "markElement" => $brand,
+                "searchScenes" => 0
+            ];  
+            $postDataJson = json_encode($postData);  
 
-            var_dump($result);
+            $ch = curl_init();  
+            curl_setopt($ch, CURLOPT_URL, $url);  
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);  
+            curl_setopt($ch, CURLOPT_POST, true);  
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [  
+                'Content-Type: application/json',  
+                'Content-Length: ' . strlen($postDataJson)  
+            ]);  
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson); 
+ 
+            $result = curl_exec($ch);  
+            curl_close($ch);  
+ 
+            
+            $resultObj = json_decode($result,true);
+
+            var_dump($resultObj);
         }
 
        
