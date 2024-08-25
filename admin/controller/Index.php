@@ -236,7 +236,7 @@ class Index extends Backend
                 "searchScenes" => 0
             ];
             // $result = $this->sendPostRequest('https://gateway.ippmaster.com/ipr/trademark/search',$params);
-            $url = "https://ised-isde.canada.ca/cipo/trademark-search/srch";  
+            $url = "https://gateway.ippmaster.com/ipr/trademark/search";  
             $postData = [
                 "pageNum" => 1,
                 "pageSize" => 10,
