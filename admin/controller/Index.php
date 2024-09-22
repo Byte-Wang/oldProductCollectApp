@@ -146,6 +146,7 @@ class Index extends Backend
          $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header);
          
         $base64Key = '8?)i_~Nk6qv0IX;2ecaac85d-cca6-47df-af86-e986cb01b507';//'OD8paV9+Tms2cXYwSVg7Mg==';
+        $base64Key = base64_encode($base64Key);
         try {  
             $plaintext = $this->aesEcbDecrypt($getResult, $base64Key);  
             // 如果原始数据是文本，你可能想直接输出或使用 $plaintext  
