@@ -139,6 +139,7 @@ class Index extends Backend
         $header = array(
             'CLIENT-IP:'.$ip,
             'X-FORWARDED-FOR:'.$ip,
+            'hashsearch:6415d06f-ac3c-4fa5-bd66-ffff211f2606',
             'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
         );
 
