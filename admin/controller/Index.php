@@ -109,9 +109,9 @@ class Index extends Backend
     } 
 
     public function checkBrandByWipo($params, $retryTimes){
-        $brand = $params.brand;
-        $region = $params.region;
-        $version = $params.version;
+        $brand = $params['brand'];
+        $region = $params['region'];
+        $version = $params['version'];
         
         if (!$this->checkVersion($version)) {
             $this->success('', [
