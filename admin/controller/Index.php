@@ -10,6 +10,7 @@ use think\facade\Db;
 use think\facade\Validate;
 use app\common\controller\Backend;
 use app\admin\model\AdminLog;
+use think\facade\Cache;
 
 class Index extends Backend
 {
@@ -100,6 +101,18 @@ class Index extends Backend
         $region = $this->request->get('region');
         $version = $this->request->get('version');
         
+        $this->checkBrandByWipo([
+            'brand' => $brand,
+            'region' => $region,
+            'version' => $version
+        ],3);
+    } 
+
+    public function checkBrandByWipo($params, $retryTimes){
+        $brand = $params.brand;
+        $region = $params.region;
+        $version = $params.version;
+        
         if (!$this->checkVersion($version)) {
             $this->success('', [
                 'code' => 201,
@@ -136,35 +149,71 @@ class Index extends Backend
         $randipArr = array(array(100,150),array(100,120));
         $onerand = rand(0,1);
         $ip = $iparr[$onerand].".".rand($randipArr[$onerand][0],$randipArr[$onerand][1]).".".rand(10,249);
+
+        $hashsearch = Cache::get('last_hashsearch_uuid');
+        if (!$hashsearch || $retryTimes < 3) {
+            $hashsearch = $this->generateUuid();
+            Cache::set('last_hashsearch_uuid',$hashsearch);
+        }
+        
+        $aesKey = '8?)i_~Nk6qv0IX;2'.$hashsearch;
         $header = array(
             'CLIENT-IP:'.$ip,
             'X-FORWARDED-FOR:'.$ip,
-            'hashsearch:ecaac85d-cca6-47df-af86-e986cb01b507',
+            'hashsearch:'.$hashsearch,
             'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
         );
 
-         $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header);
-         
-        $base64Key = '8?)i_~Nk6qv0IX;2ecaac85d-cca6-47df-af86-e986cb01b507';//'OD8paV9+Tms2cXYwSVg7Mg==';
+        $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header);
 
-        try {  
-            $plaintext = $this->aesEcbDecrypt($getResult, $base64Key);  
-            // 如果原始数据是文本，你可能想直接输出或使用 $plaintext  
-            // 如果原始数据是二进制，你可能需要将其转换为十六进制或其他格式以便查看  
-            // echo "解密结果（如果是文本则直接输出，否则转换为十六进制）: " . (is_string($plaintext) && mb_detect_encoding($plaintext, 'UTF-8', true) ? $plaintext : bin2hex($plaintext)) . "\n";  
-            
-             $this->success('', [
+        if (!is_string($getResult) || !base64_decode($getResult, true)) {  
+            if ($retryTimes > 0) {
+                $this->checkBrandByWipo($params, $retryTimes - 1);
+                return;
+            }
+            $this->success('', [
                 'code' => 200,
                 'brand' => $brand,
                 'region' => $region,
-                'resule' => json_decode($plaintext),
-                'desc' => "查询成功"
+                'result' => $getResult,
+                'desc' => "查询失败"
             ]);
-            
-        } catch (Exception $e) {  
-            echo "错误: " . $e->getMessage();  
-        }
-    } 
+            return;
+        }  
+
+        $this->success('', [
+            'code' => 200,
+            'brand' => $brand,
+            'region' => $region,
+            'result' => [
+                'hashsearch': $aesKey,
+                'searchResult': $getResult
+            ],
+            'desc' => "查询成功"
+        ]);
+    }
+
+    public function generateUuid() {  
+        return sprintf(  
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',  
+            // 32 bits for "time_low"  
+            random_int(0, 0xffff),  
+            random_int(0, 0xffff),  
+            // 16 bits for "time_mid"  
+            random_int(0, 0xffff),  
+            // 16 bits for "time_hi_and_version",  
+            // four most significant bits holds version number 4  
+            random_int(0x0fff, 0x0fff) | 0x4000,  
+            // 16 bits, 8 bits for "clk_seq_hi_res",  
+            // 8 bits for "clk_seq_low",  
+            // two most significant bits holds zero and one for variant DCE1.1  
+            random_int(0, 0x3fff) | 0x8000,  
+            // 48 bits for "node"  
+            random_int(0, 0xffff),  
+            random_int(0, 0xffff),  
+            random_int(0, 0xffff)  
+        );  
+    }  
     
     public function aesEcbDecrypt($base64Ciphertext, $base64Key) {  
 
