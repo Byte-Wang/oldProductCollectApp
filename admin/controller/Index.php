@@ -139,13 +139,13 @@ class Index extends Backend
         $header = array(
             'CLIENT-IP:'.$ip,
             'X-FORWARDED-FOR:'.$ip,
-            'hashsearch:6415d06f-ac3c-4fa5-bd66-ffff211f2606',
+            'hashsearch:ecaac85d-cca6-47df-af86-e986cb01b507',
             'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
         );
 
          $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header);
          
-        $base64Key = 'OD8paV9+Tms2cXYwSVg7Mg==';
+        $base64Key = '8?)i_~Nk6qv0IX;2ecaac85d-cca6-47df-af86-e986cb01b507';//'OD8paV9+Tms2cXYwSVg7Mg==';
         try {  
             $plaintext = $this->aesEcbDecrypt($getResult, $base64Key);  
             // 如果原始数据是文本，你可能想直接输出或使用 $plaintext  
