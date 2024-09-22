@@ -155,7 +155,7 @@ class Index extends Backend
             $hashsearch = $this->generateUuid();
             Cache::set('last_hashsearch_uuid',$hashsearch);
         }
-        
+
         $aesKey = '8?)i_~Nk6qv0IX;2'.$hashsearch;
         $header = array(
             'CLIENT-IP:'.$ip,
@@ -186,8 +186,8 @@ class Index extends Backend
             'brand' => $brand,
             'region' => $region,
             'result' => [
-                'hashsearch': $aesKey,
-                'searchResult': $getResult
+                'hashsearch' => $aesKey,
+                'searchResult'=> $getResult
             ],
             'desc' => "查询成功"
         ]);
