@@ -13,7 +13,7 @@ use app\admin\model\AdminLog;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName'];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand'];
     protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA'];
 
     public function index()
@@ -94,6 +94,94 @@ class Index extends Backend
             'desc' => "查询成功"
         ]);
     }
+
+    public function checkBrand(){
+        $brand = $this->request->get('brand');
+        $region = $this->request->get('region');
+        $version = $this->request->get('version');
+        
+        if (!$this->checkVersion($version)) {
+            $this->success('', [
+                'code' => 201,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => null,
+                'desc' => "版本过低，请先联系管理员"
+            ]);
+            return;
+        }
+        
+        if (strtoupper($region) == 'AU') {
+            $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Simple\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"AU\",\"label\":\"(AU) Australia\",\"score\":194,\"highlighted\":\"(<em>AU</em>) <em>Au</em>stralia\"}]}]}";
+        } else if (strtoupper($region) == 'CA') {
+            $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Simple\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"CA\",\"label\":\"(CA) Canada\",\"score\":194,\"highlighted\":\"(<em>CA</em>) <em>Ca</em>nada\"}]}]}";
+        } else if (strtoupper($region) == 'UK') {
+            $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Simple\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"GB\",\"label\":\"(GB) UK\",\"score\":95,\"highlighted\":\"(GB) <em>UK</em>\"}]}]}";
+        } else if (strtoupper($region) == 'JP') {
+            $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Simple\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"JP\",\"label\":\"(JP) Japan\",\"score\":99,\"highlighted\":\"(<em>JP</em>) Japan\"}]}]}";
+        } else {
+            $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Simple\",\"value\":\"".$brand."\"}]}";
+        }
+        
+        $params = [
+            "asStructure"=>$searchParams,
+            "fg"=> "_void_",
+            "rows" => "30",
+            "sort" => "score desc",
+         ];
+         $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,[
+            'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36']);
+         
+        $base64Key = 'OD8paV9+Tms2cXYwSVg7Mg==';
+        try {  
+            $plaintext = $this->aesEcbDecrypt($getResult, $base64Key);  
+            // 如果原始数据是文本，你可能想直接输出或使用 $plaintext  
+            // 如果原始数据是二进制，你可能需要将其转换为十六进制或其他格式以便查看  
+            // echo "解密结果（如果是文本则直接输出，否则转换为十六进制）: " . (is_string($plaintext) && mb_detect_encoding($plaintext, 'UTF-8', true) ? $plaintext : bin2hex($plaintext)) . "\n";  
+            
+             $this->success('', [
+                'code' => 200,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => json_decode($plaintext),
+                'desc' => "查询成功"
+            ]);
+            
+        } catch (Exception $e) {  
+            echo "错误: " . $e->getMessage();  
+        }
+    } 
+    
+    public function aesEcbDecrypt($base64Ciphertext, $base64Key) {  
+        // 验证并转换 Base64 密钥为二进制  
+        if (!is_string($base64Key) || !base64_decode($base64Key, true)) {  
+            throw new Exception('密钥必须是有效的 Base64 字符串');  
+        }  
+        $key = base64_decode($base64Key, true);  
+      
+        // 对于 ECB 模式，IV 是不需要的，但某些 API 可能需要它作为占位符  
+        $iv = ""; // 或者你可以传递一个与密钥长度相同但内容随机的字符串（不过对于 ECB 来说这没有意义）  
+      
+        // 验证并转换 Base64 密文为二进制  
+        if (!is_string($base64Ciphertext) || !base64_decode($base64Ciphertext, true)) {  
+            var_dump($base64Ciphertext);
+            return;
+        }  
+        $ciphertext = base64_decode($base64Ciphertext, true);  
+      
+        // 确定 AES 的位长度（基于密钥长度）  
+        $aesBits = strlen($key) * 8;  
+      
+        // 执行解密  
+        $decrypted = openssl_decrypt($ciphertext, 'AES-' . $aesBits . '-ECB', $key, OPENSSL_RAW_DATA, $iv);  
+      
+        if ($decrypted === false) {  
+            throw new Exception('解密失败: ' . openssl_error_string());  
+        }  
+      
+        return $decrypted;  
+    }  
+      
 
 
     public function checkBrandName(){
@@ -272,17 +360,22 @@ class Index extends Backend
        
     }
 
-    public function sendPostRequest($url,$postData){
+    public function sendPostRequest($url,$postData,$header=[]){
         $postDataJson = json_encode($postData);  
+        
+        $defaultHeader=[  
+            'Content-Type: application/json',  
+            'Content-Length: ' . strlen($postDataJson)
+        ];
+        
+         // 合并头部（实际上是按顺序连接）  
+        $allHeaders = array_merge($defaultHeader, $header);  
 
         $ch = curl_init();  
         curl_setopt($ch, CURLOPT_URL, $url);  
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);  
         curl_setopt($ch, CURLOPT_POST, true);  
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [  
-            'Content-Type: application/json',  
-            'Content-Length: ' . strlen($postDataJson)  
-        ]);  
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $allHeaders);  
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson); 
 
         $result = curl_exec($ch);  
