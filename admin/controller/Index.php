@@ -146,7 +146,7 @@ class Index extends Backend
          $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header);
          
         $base64Key = '8?)i_~Nk6qv0IX;2ecaac85d-cca6-47df-af86-e986cb01b507';//'OD8paV9+Tms2cXYwSVg7Mg==';
-        $base64Key = base64_encode($base64Key);
+
         try {  
             $plaintext = $this->aesEcbDecrypt($getResult, $base64Key);  
             // 如果原始数据是文本，你可能想直接输出或使用 $plaintext  
@@ -167,11 +167,13 @@ class Index extends Backend
     } 
     
     public function aesEcbDecrypt($base64Ciphertext, $base64Key) {  
+
+        $key = $base64Key;
         // 验证并转换 Base64 密钥为二进制  
-        if (!is_string($base64Key) || !base64_decode($base64Key, true)) {  
-            throw new Exception('密钥必须是有效的 Base64 字符串');  
-        }  
-        $key = base64_decode($base64Key, true);  
+        if (is_string($base64Key) && base64_decode($base64Key, true)) {  
+            $key = base64_decode($base64Key, true);  
+        }
+       
       
         // 对于 ECB 模式，IV 是不需要的，但某些 API 可能需要它作为占位符  
         $iv = ""; // 或者你可以传递一个与密钥长度相同但内容随机的字符串（不过对于 ECB 来说这没有意义）  
@@ -184,7 +186,7 @@ class Index extends Backend
         $ciphertext = base64_decode($base64Ciphertext, true);  
       
         // 确定 AES 的位长度（基于密钥长度）  
-        $aesBits = strlen($key) * 8;  
+        $aesBits = 256;//strlen($key) * 8;  
       
         // 执行解密  
         $decrypted = openssl_decrypt($ciphertext, 'AES-' . $aesBits . '-ECB', $key, OPENSSL_RAW_DATA, $iv);  
