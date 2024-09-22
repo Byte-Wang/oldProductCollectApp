@@ -129,8 +129,20 @@ class Index extends Backend
             "rows" => "30",
             "sort" => "score desc",
          ];
-         $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,[
-            'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36']);
+
+         //218.207.100.xxx---218.207.150.xxx
+        //61.154.100.91--61.154.120.91
+        $iparr = array("218.207","61.154");
+        $randipArr = array(array(100,150),array(100,120));
+        $onerand = rand(0,1);
+        $ip = $iparr[$onerand].".".rand($randipArr[$onerand][0],$randipArr[$onerand][1]).".".rand(10,249);
+        $header = array(
+            'CLIENT-IP:'.$ip,
+            'X-FORWARDED-FOR:'.$ip,
+            'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+        );
+
+         $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header);
          
         $base64Key = 'OD8paV9+Tms2cXYwSVg7Mg==';
         try {  
