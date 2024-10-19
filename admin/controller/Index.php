@@ -14,8 +14,8 @@ use think\facade\Cache;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand'];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA'];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"checkChromePlugVersion"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion"];
 
     public function index()
     {
@@ -44,9 +44,39 @@ class Index extends Backend
         return $version == '20240727161055';
     }
 
+    public function checkChromePlugVersion(){
+        $version = $this->request->get('version');
+        
+        if (!$this->checkVersion($version)) {
+            $this->success('', [
+                'code' => 400,
+                'desc' => "版本过低，请先联系管理员"
+            ]);
+            return;
+        }
+
+        $this->success('', [
+            'code' => 200,
+            'desc' => "可用"
+        ]);
+    }
+
     public function getFBA(){
         $region = $this->request->get('region');
         $asin = $this->request->get('asin');
+
+        $version = $this->request->get('version');
+        
+        if (!$this->checkVersion($version)) {
+            $this->success('', [
+                'code' => 400,
+                'asin' => $asin,
+                'region' => $region,
+                'resule' => $getFbaResultOb,
+                'desc' => "版本过低，请先联系管理员"
+            ]);
+            return;
+        }
 
         $marketplaceId = '';
         if ($region == 'ca' || $region == 'CA') { // 加拿大
