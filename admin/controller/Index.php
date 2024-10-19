@@ -41,7 +41,7 @@ class Index extends Backend
     }
 
     public function checkVersion($version){
-        return $version == '20240727161055';
+        return $version == '20241019050933';
     }
 
     public function checkChromePlugVersion(){
