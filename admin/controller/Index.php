@@ -15,7 +15,7 @@ use think\facade\Cache;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand'];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord"];
 
     public function index()
     {
@@ -38,6 +38,40 @@ class Index extends Backend
                 'npm_package_manager' => Config::get('buildadmin.npm_package_manager'),
             ]
         ]);
+    }
+
+    public function addPlugProductRecord(){
+        if ($this->request->isPost()) {
+            $tableNmae = 'plug_product_record';
+
+            $asin = $this->request->post('asin');
+            $productInfo = $this->request->post('productInfo');
+            $plugVersion = $this->request->post('plugVersion');
+            $userId = $this->request->post('userId');
+
+            $pid = Db::name($tableNmae)->where(['asin' => $asin])->value('id');
+            if (!$pid) {
+        
+                $data = [
+                    'asin' => $asin,
+                    'create_admin' => $userId,
+                    'create_time' => time(),
+                    'product_info' => json_encode($productInfo), 
+                    'plug_version' => $plugVersion,
+                ];
+
+                $result = Db::table($tableNmae)->insert($data);
+            } else {
+                $data = [
+                    'update_admin' => $userId,
+                    'update_time' => time(),
+                    'product_info' => json_encode($productInfo), 
+                    'plug_version' => $plugVersion,
+                ];
+
+                Db::name($tableNmae)->where(['asin' => $asin])->update($data);
+            }
+        }
     }
 
     public function checkVersion($version){
@@ -161,6 +195,8 @@ class Index extends Backend
         } else if (strtoupper($region) == 'UK') {
             $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Terms\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"GB\",\"label\":\"(GB) UK\",\"score\":95,\"highlighted\":\"(GB) <em>UK</em>\"}]}]}";
         } else if (strtoupper($region) == 'JP') {
+            $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Terms\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"JP\",\"label\":\"(JP) Japan\",\"score\":99,\"highlighted\":\"(<em>JP</em>) Japan\"}]}]}";
+        } else if (strtoupper($region) == 'US') {
             $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Terms\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"JP\",\"label\":\"(JP) Japan\",\"score\":99,\"highlighted\":\"(<em>JP</em>) Japan\"}]}]}";
         } else {
             $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Terms\",\"value\":\"".$brand."\"}]}";
