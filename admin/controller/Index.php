@@ -47,7 +47,7 @@ class Index extends Backend
             $asin = 'asin';//$this->request->post('asin');
             $productInfo = '{"a":1}';//$this->request->post('productInfo');
             $plugVersion = 'version';//$this->request->post('plugVersion');
-            $userId = 'user';//$this->request->post('userId');
+            $userId = 1;//$this->request->post('userId');
 
             $pid = Db::table($tableNmae)->where(['asin' => $asin])->value('id');
             if (!$pid) {
