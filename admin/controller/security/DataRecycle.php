@@ -163,7 +163,6 @@ class DataRecycle extends Backend
             $tablePrefix . 'token',
             $tablePrefix . 'captcha',
             $tablePrefix . 'admin_group_access',
-            $tablePrefix . 'plugin_product_record',
             // 无删除功能
             $tablePrefix . 'user_money_log',
             $tablePrefix . 'user_score_log',
