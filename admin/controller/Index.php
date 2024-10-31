@@ -41,7 +41,7 @@ class Index extends Backend
     }
 
     public function addPlugProductRecord(){
-       /* if ($this->request->isPost()) {
+        if ($this->request->isPost()) {
             $tableNmae = 'plug_product_record';
 
             $asin = $this->request->post('asin');
@@ -71,7 +71,7 @@ class Index extends Backend
 
                 Db::name($tableNmae)->where(['asin' => $asin])->update($data);
             }
-        }*/
+        }
 
         $this->success('', [
             'code' => 200,
