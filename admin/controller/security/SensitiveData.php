@@ -231,6 +231,7 @@ class SensitiveData extends Backend
             $tablePrefix . 'token',
             $tablePrefix . 'captcha',
             $tablePrefix . 'admin_group_access',
+            $tablePrefix . 'plugin_product_record',
             $tablePrefix . 'config',
             // 无编辑功能
             $tablePrefix . 'admin_log',
