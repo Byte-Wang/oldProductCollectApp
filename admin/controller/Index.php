@@ -14,7 +14,7 @@ use think\facade\Cache;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand'];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addPlugProductRecord"];
     protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord"];
 
     public function index()
@@ -41,13 +41,13 @@ class Index extends Backend
     }
 
     public function addPlugProductRecord(){
-        if ($this->request->isPost()) {
+        // if ($this->request->isPost()) {
             $tableNmae = 'plug_product_record';
 
-            $asin = $this->request->post('asin');
-            $productInfo = $this->request->post('productInfo');
-            $plugVersion = $this->request->post('plugVersion');
-            $userId = $this->request->post('userId');
+            $asin = 'test';//$this->request->post('asin');
+            $productInfo = 'test';//$this->request->post('productInfo');
+            $plugVersion = 'test';//$this->request->post('plugVersion');
+            $userId = 'test';//$this->request->post('userId');
 
             $pid = Db::name($tableNmae)->where(['asin' => $asin])->value('id');
             if (!$pid) {
@@ -71,7 +71,7 @@ class Index extends Backend
 
                 Db::name($tableNmae)->where(['asin' => $asin])->update($data);
             }
-        }
+        // }
 
         $this->success('', [
             'code' => 200,
