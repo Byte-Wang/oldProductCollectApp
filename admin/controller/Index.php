@@ -42,14 +42,14 @@ class Index extends Backend
 
     public function addPlugProductRecord(){
         // if ($this->request->isPost()) {
-            $tableNmae = 'plugin_product_record';
+            $tableNmae = 'ba_plugin_product_record';
 
             $asin = 'test';//$this->request->post('asin');
             $productInfo = 'test';//$this->request->post('productInfo');
             $plugVersion = 'test';//$this->request->post('plugVersion');
             $userId = 'test';//$this->request->post('userId');
 
-            $pid = Db::name($tableNmae)->where(['asin' => $asin])->value('id');
+            $pid = Db::table($tableNmae)->where(['asin' => $asin])->value('id');
             if (!$pid) {
         
                 $data = [
@@ -69,7 +69,7 @@ class Index extends Backend
                     'plug_version' => $plugVersion,
                 ];
 
-                Db::name($tableNmae)->where(['asin' => $asin])->update($data);
+                Db::table($tableNmae)->where(['asin' => $asin])->update($data);
             }
         // }
 
