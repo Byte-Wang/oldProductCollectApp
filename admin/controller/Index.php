@@ -72,6 +72,11 @@ class Index extends Backend
                 Db::name($tableNmae)->where(['asin' => $asin])->update($data);
             }
         }
+
+        $this->success('', [
+            'code' => 200,
+            'desc' => ""
+        ]);
     }
 
     public function checkVersion($version){
