@@ -41,13 +41,13 @@ class Index extends Backend
     }
 
     public function addPlugProductRecord(){
-        if ($this->request->isPost()) {
+        // if ($this->request->isPost()) {
             $tableNmae = 'ba_plugin_product_record';
 
-            $asin = $this->request->post('asin');
-            $productInfo = $this->request->post('productInfo');
-            $plugVersion = $this->request->post('plugVersion');
-            $userId = $this->request->post('userId');
+            $asin = 'asin';//$this->request->post('asin');
+            $productInfo = '{"a":1}';//$this->request->post('productInfo');
+            $plugVersion = 'version';//$this->request->post('plugVersion');
+            $userId = 'user';//$this->request->post('userId');
 
             $pid = Db::table($tableNmae)->where(['asin' => $asin])->value('id');
             if (!$pid) {
@@ -71,7 +71,7 @@ class Index extends Backend
 
                 Db::table($tableNmae)->where(['asin' => $asin])->update($data);
             }
-        }
+        // }
 
         $this->success('', [
             'code' => 200,
