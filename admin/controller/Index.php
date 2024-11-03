@@ -15,7 +15,7 @@ use think\facade\Cache;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory"];
 
     public function index()
     {
@@ -44,10 +44,27 @@ class Index extends Backend
          if ($this->request->isPost()) {
             $tableNmae = 'ba_plugin_product_record';
 
-            $asin = $this->request->post('asin');
-            $productInfo = $this->request->post('productInfo');
-            $plugVersion = $this->request->post('plugVersion');
-            $userId = $this->request->post('userId');
+            $asin = $request->post('asin');
+            $plugVersion = $request->post('plugVersion');           // 插件版本
+            $userId = $request->post('userId');                     // 当前请求的用户id
+            $state = $request->post('state', 1);                    // 状态
+            $seller = $request->post('seller', '');                 // 卖家
+            $sellerCount = $request->post('sellerCount', 0);        // 卖家数
+            $shippingMethod = $request->post('shippingMethod', ''); // 配送方式
+            $rank = $request->post('rank', 0);                      // 排名
+            $category = $request->post('category', '');             // 分类
+            $rating = $request->post('rating', 0.0);                // 评分
+            $brandName = $request->post('brandName', '');           // 品牌名
+            $fbaFee = $request->post('fbaFee', 0.0);                // fba费用
+            $weight = $request->post('weight', '');                 // 重量
+            $dimensions = $request->post('dimensions', '');         // 尺寸
+            $profitMargin = $request->post('profitMargin', 0.0);    // 利润率
+            $price = $request->post('price', 0.0);                  // 售价
+            $listingDate = $request->post('listingDate', '');       // 上架时间
+            $asinType = $request->post('asinType', '');             // asin类型
+            $reviewStatus = $request->post('reviewStatus', '');     // review状态
+            $wipoBrandRegistrationStatus = $request->post('wipoBrandRegistrationStatus', '');  // wipo注册状态
+            $trademarkOfficeBrandRegistrationStatus = $request->post('trademarkOfficeBrandRegistrationStatus', '');  // 商标局注册状态
 
             $pid = Db::table($tableNmae)->where(['asin' => $asin])->value('id');
             if (!$pid) {
@@ -56,8 +73,26 @@ class Index extends Backend
                     'asin' => $asin,
                     'create_admin' => $userId,
                     'create_time' => time(),
-                    'product_info' => json_encode($productInfo), 
+                    'update_admin' => $userId,
+                    'update_time' => time(),
                     'plug_version' => $plugVersion,
+                    'seller' => $seller,
+                    'seller_count' => $sellerCount,
+                    'shipping_method' => $shippingMethod,
+                    'rank' => $rank,
+                    'category' => $category,
+                    'rating' => $rating,
+                    'brand_name' => $brandName,
+                    'fba_fee' => $fbaFee,
+                    'weight' => $weight,
+                    'dimensions' => $dimensions,
+                    'profit_margin' => $profitMargin,
+                    'price' => $price,
+                    'listing_date' => $listingDate,
+                    'asin_type' => $asinType,
+                    'review_status' => $reviewStatus,
+                    'wipo_brand_registration_status' => $wipoBrandRegistrationStatus,
+                    'trademark_office_brand_registration_status' => $trademarkOfficeBrandRegistrationStatus,
                 ];
 
                 $result = Db::table($tableNmae)->insert($data);
@@ -65,19 +100,73 @@ class Index extends Backend
                 $data = [
                     'update_admin' => $userId,
                     'update_time' => time(),
-                    'product_info' => json_encode($productInfo), 
                     'plug_version' => $plugVersion,
+                    'seller' => $seller,
+                    'seller_count' => $sellerCount,
+                    'shipping_method' => $shippingMethod,
+                    'rank' => $rank,
+                    'category' => $category,
+                    'rating' => $rating,
+                    'brand_name' => $brandName,
+                    'fba_fee' => $fbaFee,
+                    'weight' => $weight,
+                    'dimensions' => $dimensions,
+                    'profit_margin' => $profitMargin,
+                    'price' => $price,
+                    'listing_date' => $listingDate,
+                    'asin_type' => $asinType,
+                    'review_status' => $reviewStatus,
+                    'wipo_brand_registration_status' => $wipoBrandRegistrationStatus,
+                    'trademark_office_brand_registration_status' => $trademarkOfficeBrandRegistrationStatus,
                 ];
 
                 Db::table($tableNmae)->where(['asin' => $asin])->update($data);
             }
+            $this->success('', [
+                'code' => 200,
+                'desc' => ""
+            ]);
+            return;
          }
 
         $this->success('', [
-            'code' => 200,
-            'desc' => ""
+            'code' => 400,
+            'desc' => "only support post"
         ]);
     }
+
+    public function addPlugProductBrowsingHistory(){
+        if ($this->request->isPost()) {
+           $tableNmae = 'ba_plugin_browsing_history';
+
+           $asin = $request->post('asin');
+           $action = $request->post('action');                     // 操作，1-浏览；2-更新数据
+           $plugVersion = $request->post('plugVersion');           // 插件版本
+           $userId = $request->post('userId');                     // 当前请求的用户id
+
+       
+           $data = [
+                'asin' => $asin,
+                'create_time' => time(),
+                'admin_id' => $userId,
+                'action' => $action,
+                'plug_version' => $plugVersion,
+            ];
+
+            $result = Db::table($tableNmae)->insert($data);
+
+           $this->success('', [
+               'code' => 200,
+               'desc' => ""
+           ]);
+           return;
+        }
+
+       $this->success('', [
+           'code' => 400,
+           'desc' => "only support post"
+       ]);
+   }
 
     public function checkVersion($version){
         return $version == '20241019050933';
