@@ -344,7 +344,7 @@ class Product extends Backend
                 $data['submit_user'] = $admin['id'];
                 $data['submit_team'] = $admin['team_id'];
 
-                $result = $this->model->save($data);
+                $result = $this->model->allowField(true)->save($data);
                 Db::commit();
             } catch (ValidateException $e) {
                 Db::rollback();
