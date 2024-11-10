@@ -137,6 +137,16 @@ class Product extends Model
         return !$value ? '' : $value;
     }
 
+    public function getBrandAttr($value, $row)
+    {
+        return !$value ? '' : htmlspecialchars_decode($value);
+    }
+    
+    public function getCategoryAttr($value, $row)
+    {
+        return !$value ? '' : htmlspecialchars_decode($value);
+    }
+
     public function getSubmitUserNameAttr($value, $row)
     {
         $info = Db::name('admin')
