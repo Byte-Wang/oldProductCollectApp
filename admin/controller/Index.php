@@ -67,6 +67,7 @@ class Index extends Backend
             $wipoBrandRegistrationStatus = $request->post('wipoBrandRegistrationStatus', '');  // wipo注册状态
             $trademarkOfficeBrandRegistrationStatus = $request->post('trademarkOfficeBrandRegistrationStatus', '');  // 商标局注册状态
 
+            $action = 1; // 添加操作
             $pid = Db::table($tableNmae)->where(['asin' => $asin])->value('id');
             if (!$pid) {
         
@@ -98,6 +99,8 @@ class Index extends Backend
 
                 $result = Db::table($tableNmae)->insert($data);
             } else {
+                $action = 2; //编辑操作
+
                 $data = [
                     'update_admin' => $userId,
                     'update_time' => time(),
@@ -123,6 +126,16 @@ class Index extends Backend
 
                 Db::table($tableNmae)->where(['asin' => $asin])->update($data);
             }
+
+            $historyData = [
+                'asin' => $asin,
+                'admin_id' => $userId,
+                'create_time' => time(),
+                'action' => $action,
+                'plug_version' => $plugVersion,
+            ];
+            $result = Db::table('ba_plugin_browsing_history')->insert($historyData);
+
             $this->success('', [
                 'code' => 200,
                 'desc' => ""
