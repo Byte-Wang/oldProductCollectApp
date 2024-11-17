@@ -42,6 +42,7 @@ class Index extends Backend
 
     public function addPlugProductRecord(){
          if ($this->request->isPost()) {
+            $request = $this->request;
             $tableNmae = 'ba_plugin_product_record';
 
             $asin = $request->post('asin');
