@@ -150,30 +150,26 @@ class Index extends Backend
     }
 
     public function getPlugProductRecord(){
-        /*
-        SELECT a . * , COUNT( b.asin ) AS browsing_count
-        FROM `ba_plugin_product_record` a
-        LEFT JOIN `ba_plugin_browsing_history` b ON a.asin = b.asin
-        GROUP BY a.asin
-        ORDER BY a.update_time DESC
-        LIMIT 60 , 30
-        */
+        $page = $this->request->get('page');
+        $limit = $this->request->get('limit');
 
-        list($where, $alias, $limit, $order) = $this->queryBuilder();
-
-        $result = Db::table('ba_plugin_product_record')->alias('a')
-        ->join('ba_plugin_browsing_history b','a.asin = b.asin')
-        ->field('a.*,COUNT(b.asin) AS browsing_count')
-        ->where($where)
+        $result = Db::table('ba_plugin_product_record')
+        ->alias('a')
+        ->field('a.*, COUNT(b.asin) AS browsing_count, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
+        ->leftJoin('ba_plugin_browsing_history b', 'a.asin = b.asin')
+        ->leftJoin('ba_admin ua', 'a.update_admin = ua.id')
+        ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
         ->group('a.asin')
-        ->order($order) 
-        ->limit(60,30)
-        ->paginate($limit);
+        ->order('a.update_time', 'desc')
+        ->paginate($limit, false, [
+            'page'  => $page
+        ]);
+    
+        
 
         $this->success('', [
-            'list' => $res->items(),
-            'total' => $res->total(),
-            'remark' => get_route_remark(),
+            'list' => $result->items(),
+            'total' => $result->total()
         ]);
     }
 
