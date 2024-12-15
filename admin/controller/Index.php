@@ -66,6 +66,8 @@ class Index extends Backend
             $reviewStatus = $request->post('reviewStatus', '');     // review状态
             $wipoBrandRegistrationStatus = $request->post('wipoBrandRegistrationStatus', '');  // wipo注册状态
             $trademarkOfficeBrandRegistrationStatus = $request->post('trademarkOfficeBrandRegistrationStatus', '');  // 商标局注册状态
+            $productName = $request->post('productTitle', ''); // 产品名称
+            $productImage = $request->post('pictureUrl', ''); // 产品图片
 
             $action = 1; // 添加操作
             $pid = Db::table($tableNmae)->where(['asin' => $asin])->value('id');
@@ -95,6 +97,8 @@ class Index extends Backend
                     'review_status' => $reviewStatus,
                     'wipo_brand_registration_status' => $wipoBrandRegistrationStatus,
                     'trademark_office_brand_registration_status' => $trademarkOfficeBrandRegistrationStatus,
+                    'product_name' => $productName,
+                    'picture_url' => $productImage,
                 ];
 
                 $result = Db::table($tableNmae)->insert($data);
