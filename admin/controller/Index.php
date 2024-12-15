@@ -15,7 +15,7 @@ use think\facade\Cache;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord"];
 
     public function index()
     {
@@ -146,6 +146,34 @@ class Index extends Backend
         $this->success('', [
             'code' => 400,
             'desc' => "only support post"
+        ]);
+    }
+
+    public function getPlugProductRecord(){
+        /*
+        SELECT a . * , COUNT( b.asin ) AS browsing_count
+        FROM `ba_plugin_product_record` a
+        LEFT JOIN `ba_plugin_browsing_history` b ON a.asin = b.asin
+        GROUP BY a.asin
+        ORDER BY a.update_time DESC
+        LIMIT 60 , 30
+        */
+
+        list($where, $alias, $limit, $order) = $this->queryBuilder();
+
+        $result = Db::table('ba_plugin_product_record')->alias('a')
+        ->join('ba_plugin_browsing_history b','a.asin = b.asin')
+        ->field('a.*,COUNT(b.asin) AS browsing_count')
+        ->where($where)
+        ->group('a.asin')
+        ->order($order) 
+        ->limit(60,30)
+        ->paginate($limit);
+
+        $this->success('', [
+            'list' => $res->items(),
+            'total' => $res->total(),
+            'remark' => get_route_remark(),
         ]);
     }
 
