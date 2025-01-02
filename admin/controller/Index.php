@@ -68,6 +68,7 @@ class Index extends Backend
             $trademarkOfficeBrandRegistrationStatus = $request->post('trademarkOfficeBrandRegistrationStatus', '');  // 商标局注册状态
             $productName = $request->post('productTitle', ''); // 产品名称
             $productImage = $request->post('pictureUrl', ''); // 产品图片
+            $stationId = $request->post('stationId', 0); // 产品图片
 
             $action = 1; // 添加操作
             $pid = Db::table($tableNmae)->where(['asin' => $asin])->value('id');
@@ -99,6 +100,7 @@ class Index extends Backend
                     'trademark_office_brand_registration_status' => $trademarkOfficeBrandRegistrationStatus,
                     'product_name' => $productName,
                     'picture_url' => $productImage,
+                    'station_id' => $stationId,
                 ];
 
                 $result = Db::table($tableNmae)->insert($data);
@@ -159,11 +161,12 @@ class Index extends Backend
 
         $result = Db::table('ba_plugin_product_record')
         ->alias('a')
-        ->field('a.*, COUNT(b.asin) AS browsing_count, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
+        ->field('a.*,pd.product_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, COUNT(b.asin) AS browsing_count, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
         ->leftJoin('ba_plugin_browsing_history b', 'a.asin = b.asin')
         ->leftJoin('ba_admin ua', 'a.update_admin = ua.id')
         ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
-        ->group('a.asin')
+        ->leftJoin('ba_product pd', 'a.asin = pd.asin and (a.station_id = 0 or a.station_id = pd.station_id)')
+        ->group('a.asin,a.station_id')
         ->order('a.update_time', 'desc')
         ->paginate($limit, false, [
             'page'  => $page
