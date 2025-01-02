@@ -161,11 +161,12 @@ class Index extends Backend
 
         $result = Db::table('ba_plugin_product_record')
         ->alias('a')
-        ->field('a.*,pd.product_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, COUNT(b.asin) AS browsing_count, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
+        ->field('a.*,s.title as station_title,pd.product_name as pd_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, COUNT(b.asin) AS browsing_count, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
         ->leftJoin('ba_plugin_browsing_history b', 'a.asin = b.asin')
         ->leftJoin('ba_admin ua', 'a.update_admin = ua.id')
         ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
         ->leftJoin('ba_product pd', 'a.asin = pd.asin and (a.station_id = 0 or a.station_id = pd.station_id)')
+        ->leftJoin('ba_station s', 'a.station_id = s.id')
         ->group('a.asin,a.station_id')
         ->order('a.update_time', 'desc')
         ->paginate($limit, false, [
