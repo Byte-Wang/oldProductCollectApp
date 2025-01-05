@@ -235,6 +235,7 @@ class Index extends Backend
                 'desc' => $desc,
                 'status' => 1,                // 默认状态为1-启用
                 'create_time' => time(),      // 创建时间
+                'update_time' => time(),      // 创建时间
             ];
 
             $result = Db::table($tableName)->insert($data);
