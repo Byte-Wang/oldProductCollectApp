@@ -15,7 +15,7 @@ use think\facade\Cache;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","getTeamArea","addTeamArea","editTeamArea"];
 
     public function index()
     {
@@ -178,6 +178,168 @@ class Index extends Backend
         $this->success('', [
             'list' => $result->items(),
             'total' => $result->total()
+        ]);
+    }
+
+    public function getTeamArea(){
+        $page = $this->request->get('page');
+        $limit = $this->request->get('limit');
+
+        $result = Db::table('ba_team_area')
+        ->alias('a')
+        ->field('a.id,a.name,a.create_time,u.nickname as principal_name')
+        ->leftJoin('ba_admin u', 'a.principal = u.id')
+        ->where('a.status', 1)
+        ->order('a.create_time', 'desc')
+        ->paginate($limit, false, [
+            'page'  => $page
+        ]);
+
+        $this->success('', [
+            'list' => $result->items(),
+            'total' => $result->total()
+        ]);
+    }
+
+    public function addTeamArea() {
+        if ($this->request->isPost()) {
+            $request = $this->request;
+            $tableName = 'ba_team_area';
+
+            $name = $request->post('name', '');           // 团队名称
+            $principal = $request->post('principal', 0);   // 负责人id
+            $desc = $request->post('desc', '');           // 描述
+            
+            // 检查必填字段
+            if (empty($name)) {
+                $this->success('', [
+                    'code' => 400,
+                    'desc' => "团队名称不能为空"
+                ]);
+                return;
+            }
+
+            // 检查名称是否重复
+            $exists = Db::table($tableName)->where(['name' => $name])->value('id');
+            if ($exists) {
+                $this->success('', [
+                    'code' => 400,
+                    'desc' => "团队名称已存在"
+                ]);
+                return;
+            }
+
+            $data = [
+                'name' => $name,
+                'principal' => $principal,
+                'desc' => $desc,
+                'status' => 1,                // 默认状态为1-启用
+                'create_time' => time(),      // 创建时间
+            ];
+
+            $result = Db::table($tableName)->insert($data);
+
+            if ($result) {
+                $this->success('', [
+                    'code' => 200,
+                    'desc' => "添加成功"
+                ]);
+            } else {
+                $this->success('', [
+                    'code' => 400,
+                    'desc' => "添加失败"
+                ]);
+            }
+            return;
+        }
+
+        $this->success('', [
+            'code' => 400,
+            'desc' => "only support post"
+        ]);
+    }
+
+
+    public function editTeamArea() {
+        if ($this->request->isPost()) {
+            $request = $this->request;
+            $tableName = 'ba_team_area';
+
+            $id = $request->post('id', 0);             // 团队ID
+            $name = $request->post('name', '');        // 团队名称
+            $principal = $request->post('principal', 0); // 负责人id
+            $desc = $request->post('desc', '');        // 描述
+            $status = $request->post('status', 1);     // 状态
+            
+            // 检查必填字段
+            if (empty($id)) {
+                $this->success('', [
+                    'code' => 400,
+                    'desc' => "团队ID不能为空"
+                ]);
+                return;
+            }
+
+            if (empty($name)) {
+                $this->success('', [
+                    'code' => 400,
+                    'desc' => "团队名称不能为空"
+                ]);
+                return;
+            }
+
+            // 检查记录是否存在
+            $exists = Db::table($tableName)->where(['id' => $id])->find();
+            if (!$exists) {
+                $this->success('', [
+                    'code' => 400,
+                    'desc' => "团队不存在"
+                ]);
+                return;
+            }
+
+            // 检查名称是否重复(排除自身)
+            $nameExists = Db::table($tableName)
+                ->where('id', '<>', $id)
+                ->where(['name' => $name])
+                ->find();
+            if ($nameExists) {
+                $this->success('', [
+                    'code' => 400,
+                    'desc' => "团队名称已存在"
+                ]);
+                return;
+            }
+
+            $data = [
+                'name' => $name,
+                'principal' => $principal,
+                'desc' => $desc,
+                'status' => $status,
+                'update_time' => time(),      // 更新时间
+            ];
+
+            $result = Db::table($tableName)
+                ->where(['id' => $id])
+                ->update($data);
+
+            if ($result !== false) {
+                $this->success('', [
+                    'code' => 200,
+                    'desc' => "更新成功"
+                ]);
+            } else {
+                $this->success('', [
+                    'code' => 400,
+                    'desc' => "更新失败"
+                ]);
+            }
+            return;
+        }
+
+        $this->success('', [
+            'code' => 400,
+            'desc' => "only support post"
         ]);
     }
 
