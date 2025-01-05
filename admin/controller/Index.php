@@ -281,7 +281,7 @@ class Index extends Backend
                 return;
             }
 
-            if (empty($name)) {
+            if (empty($name) && $status != 0) {
                 $this->success('', [
                     'code' => 400,
                     'desc' => "团队名称不能为空"
