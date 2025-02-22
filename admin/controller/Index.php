@@ -15,7 +15,7 @@ use think\facade\Cache;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","getTeamArea","addTeamArea","editTeamArea"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct"];
 
     public function index()
     {
@@ -40,12 +40,107 @@ class Index extends Backend
         ]);
     }
 
+    public function setFavoritePlugProduct(){
+        if ($this->request->isPost()) {
+            $request = $this->request;
+            $tableNmae = 'ba_plugin_product_record';
+
+            $asin = $request->post('asin');
+            $stationId = $request->post('stationId', 0);
+            $favorite = $request->post('favorite'); // 1-收藏 0-取消收藏
+            
+            // 获取当前用户信息
+            $admin = $this->auth->getAdmin();
+            $userId = $admin->id;
+
+            $record = Db::table($tableNmae)
+                ->where(['asin' => $asin])
+                ->where(['station_id' => $stationId])
+                ->find();
+
+            if ($record) {
+              
+                
+                if ($favorite == 1) { // 收藏
+                    $action = 3; //favorite操作
+                    // 如果favorite为空，直接添加
+                    if (empty($record['favorite'])) {
+                        $newFavorite = ','.$userId.',';
+                    } else {
+                        // 检查是否已经收藏过
+                        if (strpos($record['favorite'], ','.$userId.',') === false) {
+                            $newFavorite = $record['favorite'].','.$userId.',';
+                        } else {
+                            $this->success('', [
+                                'code' => 200,
+                                'desc' => "已经收藏过了"
+                            ]);
+                            return;
+                        }
+                    }
+                } else { // 取消收藏
+                    $action = 4; //favorite操作
+                    if (empty($record['favorite'])) {
+                        $this->success('', [
+                            'code' => 200,
+                            'desc' => "还未收藏"
+                        ]);
+                        return;
+                    }
+                    // 移除用户ID
+                    $newFavorite = str_replace(','.$userId.',', '', $record['favorite']);
+                    // 如果只剩下一个逗号，则清空
+                    if ($newFavorite == ',' || $newFavorite == ',,') {
+                        $newFavorite = '';
+                    }
+                }
+
+                $data = [
+                    'favorite' => $newFavorite,
+                ];
+
+                Db::table($tableNmae)
+                    ->where(['asin' => $asin])
+                    ->where(['station_id' => $stationId])
+                    ->update($data);
+
+                // 记录历史
+                $historyData = [
+                    'asin' => $asin,
+                    'admin_id' => $userId,
+                    'create_time' => time(),
+                    'action' => $action,
+                    'plug_version' => $request->post('plugVersion', ''), // 添加插件版本
+                ];
+                Db::table('ba_plugin_browsing_history')->insert($historyData);
+
+                $this->success('', [
+                    'code' => 200,
+                    'desc' => $favorite == 1 ? "收藏成功" : "取消收藏成功"
+                ]);
+                return;
+            } else {
+                $this->success('', [
+                    'code' => 400,
+                    'desc' => "记录不存在"
+                ]);
+                return;
+            }
+        }
+
+        $this->success('', [
+            'code' => 400,
+            'desc' => "only support post"
+        ]);
+    }
+
     public function addPlugProductRecord(){
          if ($this->request->isPost()) {
             $request = $this->request;
             $tableNmae = 'ba_plugin_product_record';
 
             $asin = $request->post('asin');
+            $favorite = $request->post('favorite');
             $plugVersion = $request->post('plugVersion');           // 插件版本
             $userId = $request->post('userId');                     // 当前请求的用户id
             $state = $request->post('state', 1);                    // 状态
@@ -71,11 +166,12 @@ class Index extends Backend
             $stationId = $request->post('stationId', 0); // 产品图片
 
             $action = 1; // 添加操作
-            $pid = Db::table($tableNmae)->where(['asin' => $asin])->value('id');
+            $pid = Db::table($tableNmae)->where(['asin' => $asin])->where(['station_id' => $stationId])->value('id');
             if (!$pid) {
         
                 $data = [
                     'asin' => $asin,
+                    'favorite' => $favorite,
                     'create_admin' => $userId,
                     'create_time' => time(),
                     'update_admin' => $userId,
@@ -108,6 +204,7 @@ class Index extends Backend
                 $action = 2; //编辑操作
 
                 $data = [
+                    'favorite' => $favorite,
                     'update_admin' => $userId,
                     'update_time' => time(),
                     'plug_version' => $plugVersion,
@@ -158,21 +255,70 @@ class Index extends Backend
     public function getPlugProductRecord(){
         $page = $this->request->get('page');
         $limit = $this->request->get('limit');
+        $status = $this->request->get('status');
+        $asin = $this->request->get('asin');
+        $favoriteStatus = $this->request->get('favoriteStatus');
+        $createAdmin = $this->request->get('createAdmin');
+        $createTeam = $this->request->get('createTeam');
+        $createAdminStart = $this->request->get('createTimeStart');
+        $createAdminEnd = $this->request->get('createTimeEnd');
+
+        $admin = $this->auth->getAdmin();
+
+        $queryWhere = [];
+        if ($status) {
+            $queryWhere[] = ['a.status', '=', $status];
+        }
+
+        if ($asin) {
+            $queryWhere[] = ['a.asin', '=', $asin];
+        }
+
+        if ($favoriteStatus == 1) { // 被收藏
+            $queryWhere[] = ['', 'exp', Db::raw('a.favorite <> ""')];
+        } else if ($favoriteStatus == 2) { // 被本人收藏
+            $queryWhere[] = ['a.favorite', 'like', '%,'.$admin->id.',%'];
+        } else if ($favoriteStatus == 3) { // 未被收藏
+            $queryWhere[] = ['', 'exp', Db::raw('(a.favorite is null or a.favorite = "")')];
+        }
+
+        if ($createAdmin) {
+            $queryWhere[] = ['a.create_admin', '=', $createAdmin];
+        }
+
+        if ($createTeam) {
+            $queryWhere[] = ['ca.team_id', '=', $createTeam];
+        }
+
+        if ($createAdminStart && $createAdminEnd) {
+            $queryWhere[] = ['a.create_time', '>=', $createAdminStart];
+            $queryWhere[] = ['a.create_time', '<=', $createAdminEnd];
+        }
+
+        
+        $whereRole = [];
+
+        if (in_array(1, $admin->group_arr)) { // 系统管理员
+            // 查看全部
+        } else if (in_array(3, $admin->group_arr)) { // 团队负责人
+            $whereRole = ['ca.team_id' => $admin->team_id];
+        } else { // 普通用户、审核员
+            $whereRole = ['create_admin' => $admin->id];
+        }
 
         $result = Db::table('ba_plugin_product_record')
         ->alias('a')
-        ->field('a.*,s.title as station_title,pd.product_name as pd_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, COUNT(b.asin) AS browsing_count, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
-        ->leftJoin('ba_plugin_browsing_history b', 'a.asin = b.asin')
+        ->field('a.*,s.title as station_title,pd.product_name as pd_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
         ->leftJoin('ba_admin ua', 'a.update_admin = ua.id')
         ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
         ->leftJoin('ba_product pd', 'a.asin = pd.asin and (a.station_id = 0 or a.station_id = pd.station_id)')
         ->leftJoin('ba_station s', 'a.station_id = s.id')
-        ->group('a.asin,a.station_id')
+        ->where($queryWhere)
+        ->where($whereRole)
         ->order('a.update_time', 'desc')
         ->paginate($limit, false, [
             'page'  => $page
         ]);
-    
         
 
         $this->success('', [
