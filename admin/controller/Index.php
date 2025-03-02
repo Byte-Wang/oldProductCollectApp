@@ -225,6 +225,9 @@ class Index extends Backend
                     'review_status' => $reviewStatus,
                     'wipo_brand_registration_status' => $wipoBrandRegistrationStatus,
                     'trademark_office_brand_registration_status' => $trademarkOfficeBrandRegistrationStatus,
+                    'product_name' => $productName,
+                    'picture_url' => $productImage,
+                    'station_id' => $stationId,
                 ];
 
                 Db::table($tableNmae)->where(['asin' => $asin])->update($data);
