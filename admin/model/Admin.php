@@ -35,6 +35,8 @@ class Admin extends Model
         'group_arr',
         'group_name_arr',
         'team',
+        'team_area_info',
+        'manage_team',
     ];
 
     public function getGroupArrAttr($value, $row)
@@ -48,7 +50,18 @@ class Admin extends Model
     public function getTeamAttr($value, $row)
     {
         $team = Db::name('team')
-            ->where('id', $row['team_id'])
+            ->alias('t')
+            ->leftJoin('ba_team_area ta', 't.team_area_id = ta.id')
+            ->where('t.id', $row['team_id'])
+            ->field("t.*,ta.name as team_area_name")
+            ->find();
+        return $team;
+    }
+
+    public function getManageTeamAttr($value, $row) {
+        $team = Db::name('team')
+            ->alias('t2')
+            ->where('t2.principal', $row['id'])
             ->find();
         return $team;
     }
@@ -65,6 +78,15 @@ class Admin extends Model
     public function getAvatarAttr($value)
     {
         return full_url($value, true, Config::get('buildadmin.default_avatar'));
+    }
+
+    public function getTeamAreaInfoAttr($value, $row)
+    {
+        $info = Db::name('team_area')
+            ->where('id', $row['team_area_id'])
+            ->field("id,name")
+            ->find();
+        return $info;
     }
 
     public function getLastlogintimeAttr($value)

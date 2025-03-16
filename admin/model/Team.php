@@ -25,6 +25,7 @@ class Team extends Model
      */
     protected $append = [
         'principal_info', //负责人
+        'team_area_info',
     ];
 
     public function getNoteTextareaAttr($value, $row)
@@ -38,6 +39,15 @@ class Team extends Model
         $info = Db::name('admin')
             ->where('id', $row['principal'])
             ->field("id,username,nickname,avatar,email,mobile,team_id")
+            ->find();
+        return $info;
+    }
+
+    public function getTeamAreaInfoAttr($value, $row)
+    {
+        $info = Db::name('team_area')
+            ->where('id', $row['team_area_id'])
+            ->field("id,name")
             ->find();
         return $info;
     }
