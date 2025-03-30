@@ -245,23 +245,49 @@ class Product extends Backend
 
     public function test()
     {
-        $data = [
-            'station_id' => 7,
-            'weight' => 50,
-            'rate' => 5,
-            'sale_price' => 12.99,
-            'purchase_price' => 8,
-            'fba_price' => 4.04,
-        ];
-        try {
+//         $data = [
+//             'station_id' => 7,
+//             'weight' => 50,
+//             'rate' => 5,
+//             'sale_price' => 12.99,
+//             'purchase_price' => 8,
+//             'fba_price' => 4.04,
+//         ];
+//         try {
 
-            $a = $this->calculate($data);
-//            var_dump('结束');
-            var_dump($a);
-        } catch (ValidateException $e) {
-            var_dump($e->getMessage());
-        }
-        die();
+//             $a = $this->calculate($data);
+// //            var_dump('结束');
+//             var_dump($a);
+//         } catch (ValidateException $e) {
+//             var_dump($e->getMessage());
+//         }
+//         die();
+
+list($where, $alias, $limit, $order) = $this->queryBuilder();
+
+        $res = $this->model
+            // ->withJoin($this->withJoinTable, $this->withJoinType)
+            ->alias($alias)
+            ->where($where)
+            ->leftJoin('ba_admin ca', 'submit_user = ca.id')
+            // ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
+            // ->where($where)
+            // ->where($whereRole)
+            ->where(['product.status' => 1]) // 【by wangzhijie】增加删除数据的判断
+            // ->where($teamAreaRole)
+            // ->orderRaw("field(state,'0','1','4','2','5','3','-1'),createtime DESC")
+            // ->order($order) // by zhijie - 11/05 开启列表页排序功能
+            ->paginate(5);
+            
+            
+        $sql = Db::getLastSql();
+
+        $this->success('', [
+            'list' => $res->items(),
+            'total' => $res->total(),
+            'remark' => get_route_remark(),
+            'sql' => $sql
+        ]);
 
     }
 
@@ -278,6 +304,7 @@ class Product extends Backend
         $admin = $this->auth->getAdmin();
         $type = $this->request->get("type", 0);
         $whereRole = [];
+        $teamAreaRole = '';
         if ($type == 1) {
             //团队
             if (in_array(1, $admin->group_arr)) {
@@ -285,30 +312,46 @@ class Product extends Backend
                 //审核员 的 待审核 为 1
             } elseif (in_array(2, $admin->group_arr)) {
                 //审核员 只能查看分配的数据
-                $whereRole = ['allot_id' => $admin->id];
+                $whereRole = ['product.allot_id' => $admin->id];
             } elseif (in_array(3, $admin->group_arr)) {
-                $whereRole = ['submit_team' => $admin->team_id];
+                $whereRole = ['product.submit_team' => $admin->team_id];
             } else {
                 $this->error('权限不足');
             }
+            
+            
+            $currentTeamArea = $admin->belong_team_area_id;
+            if ($currentTeamArea && $currentTeamArea != 0) {
+                $teamAreaRole = 'ct.team_area_id = '.$currentTeamArea.' or ca.team_area_id = '.$currentTeamArea;
+            }
+            
         } else {
-            $whereRole = ['submit_user' => $admin->id];
+            $whereRole = ['product.submit_user' => $admin->id];
         }
+        
+        
 
         $res = $this->model
             ->withJoin($this->withJoinTable, $this->withJoinType)
             ->alias($alias)
+            ->leftJoin('ba_admin ca', 'submit_user = ca.id')
+            ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
             ->where($where)
             ->where($whereRole)
-            ->where(['status' => 1]) // 【by wangzhijie】增加删除数据的判断
+            ->where(['product.status' => 1]) // 【by wangzhijie】增加删除数据的判断
+            ->where($teamAreaRole)
             // ->orderRaw("field(state,'0','1','4','2','5','3','-1'),createtime DESC")
             ->order($order) // by zhijie - 11/05 开启列表页排序功能
             ->paginate($limit);
+            
+            
+        $sql = Db::getLastSql();
 
         $this->success('', [
             'list' => $res->items(),
             'total' => $res->total(),
             'remark' => get_route_remark(),
+            'sql' => $sql
         ]);
     }
 

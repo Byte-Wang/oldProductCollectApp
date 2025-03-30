@@ -20,14 +20,50 @@ class Admin extends Backend
 
     protected $preExcludeFields = ['createtime', 'updatetime', 'password', 'salt', 'loginfailure', 'lastlogintime', 'lastloginip'];
 
+    protected $defaultSortField = 'admin.id,desc';
+ 
     protected $quickSearchField = ['username', 'nickname','team_id'];
 
     protected $noNeedPermission = ['index','select'];
+    
+    protected $noNeedLogin = ['index'];
 
     public function initialize()
     {
         parent::initialize();
         $this->model = new AdminModel();
+    }
+    
+    public function index() {
+        $this->request->filter(['strip_tags', 'trim']);
+        
+        list($where, $alias, $limit, $order) = $this->queryBuilder();
+        
+        $admin = $this->auth->getAdmin();
+        $teamAreaRole = '';
+        $currentTeamArea = $admin->belong_team_area_id;
+        if ($currentTeamArea && $currentTeamArea != 0) {
+            $teamAreaRole = 'admin.team_area_id = '.$currentTeamArea.' or '.'t.team_area_id = '.$currentTeamArea;
+        }
+         
+        $res = $this->model
+            ->alias($alias)
+            ->field('admin.*')
+            ->leftJoin('ba_team t', 't.id = admin.team_id')
+            ->where($where)
+            ->where($teamAreaRole)
+            ->order($order)
+            ->paginate($limit);
+            
+            
+        $sql = Db::getLastSql();
+
+        $this->success('', [
+            'list' => $res->items(),
+            'total' => $res->total(),
+            'remark' => get_route_remark(),
+            'sql' => $sql
+        ]);
     }
 
     public function add()

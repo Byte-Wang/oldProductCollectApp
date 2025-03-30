@@ -36,8 +36,32 @@ class Admin extends Model
         'group_name_arr',
         'team',
         'team_area_info',
-        'manage_team',
+        'belong_team_area_id',
     ];
+    
+    public function getBelongTeamAreaIdAttr($value, $row)
+    {
+         // 1. 判断 $row['team_area_id'] 是否有值
+        if (!empty($row['team_area_id'])) {
+            return $row['team_area_id'];
+        }
+    
+        // 2. 如果 $row['team_area_id'] 为空，判断 $row['team_id'] 是否有值
+        if (!empty($row['team_id'])) {
+            // 使用 ThinkPHP 查询语句查询 team_area_id
+            $teamAreaId = Db::name('team')
+                ->where('id', $row['team_id']) // 根据 team_id 查询
+                ->value('team_area_id');      // 只取 team_area_id 字段的值
+    
+            // 3. 检查查询结果是否有值
+            if (!empty($teamAreaId)) {
+                return $teamAreaId; // 如果有值，直接返回
+            }
+        }
+    
+        // 4. 如果以上条件都不满足，返回 0
+        return 0;
+    }
 
     public function getGroupArrAttr($value, $row)
     {

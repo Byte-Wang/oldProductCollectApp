@@ -308,6 +308,12 @@ class Index extends Backend
         } else { // 普通用户、审核员
             $whereRole = ['create_admin' => $admin->id];
         }
+        
+        $teamAreaRole = '';
+        $currentTeamArea = $admin->belong_team_area_id;
+        if ($currentTeamArea && $currentTeamArea != 0) {
+            $teamAreaRole = 'ct.team_area_id = '.$currentTeamArea.' or ca.team_area_id = '.$currentTeamArea;
+        }
 
         $result = Db::table('ba_plugin_product_record')
         ->alias('a')
@@ -316,6 +322,8 @@ class Index extends Backend
         ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
         ->leftJoin('ba_product pd', 'a.asin = pd.asin and (a.station_id = 0 or a.station_id = pd.station_id)')
         ->leftJoin('ba_station s', 'a.station_id = s.id')
+        ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
+        ->where($teamAreaRole)
         ->where($queryWhere)
         ->where($whereRole)
         ->order('a.update_time', 'desc')
@@ -323,21 +331,31 @@ class Index extends Backend
             'page'  => $page
         ]);
         
+        $sql = Db::getLastSql();
 
         $this->success('', [
             'list' => $result->items(),
-            'total' => $result->total()
+            'total' => $result->total(),
+            'sql' => $sql,
         ]);
     }
 
     public function getTeamArea(){
         $page = $this->request->get('page');
         $limit = $this->request->get('limit');
+        
+        $admin = $this->auth->getAdmin();
+        $teamAreaRole = '';
+        $currentTeamArea = $admin->belong_team_area_id;
+        if ($currentTeamArea && $currentTeamArea != 0) {
+            $teamAreaRole = 'a.id = '.$currentTeamArea;
+        }
 
         $result = Db::table('ba_team_area')
         ->alias('a')
         ->field('a.id,a.name,a.create_time,GROUP_CONCAT(u.nickname SEPARATOR ", ") AS principal_name')
         ->leftJoin('ba_admin u', 'a.id = u.team_area_id')
+        ->where($teamAreaRole)
         ->where('a.status', 1)
         ->group('a.id') // 按照 ba_team_area 的主键分组
         ->order('a.create_time', 'desc')
