@@ -285,11 +285,11 @@ class Index extends Backend
             $queryWhere[] = ['', 'exp', Db::raw('(a.favorite is null or a.favorite = "")')];
         }
 
-        if ($createAdmin) {
+        if ($createAdmin && $createAdmin !== null && !empty($createAdmin) && $createAdmin !== 'null') {
             $queryWhere[] = ['a.create_admin', '=', $createAdmin];
         }
 
-        if ($createTeam) {
+        if ($createTeam && $createTeam !== null && !empty($createTeam) && $createTeam !== 'null') {
             $queryWhere[] = ['ca.team_id', '=', $createTeam];
         }
 
@@ -336,9 +336,10 @@ class Index extends Backend
 
         $result = Db::table('ba_team_area')
         ->alias('a')
-        ->field('a.id,a.name,a.create_time,u.nickname as principal_name')
-        ->leftJoin('ba_admin u', 'a.principal = u.id')
+        ->field('a.id,a.name,a.create_time,GROUP_CONCAT(u.nickname SEPARATOR ", ") AS principal_name')
+        ->leftJoin('ba_admin u', 'a.id = u.team_area_id')
         ->where('a.status', 1)
+        ->group('a.id') // 按照 ba_team_area 的主键分组
         ->order('a.create_time', 'desc')
         ->paginate($limit, false, [
             'page'  => $page
