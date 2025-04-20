@@ -334,6 +334,7 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
         $res = $this->model
             ->withJoin($this->withJoinTable, $this->withJoinType)
             ->alias($alias)
+            ->field('product.*')
             ->leftJoin('ba_admin ca', 'submit_user = ca.id')
             ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
             ->where($where)

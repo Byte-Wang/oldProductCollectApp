@@ -49,6 +49,7 @@ class Team extends Backend
          
         $res = $this->model
             ->alias($alias)
+            ->field('team.*')
             ->where($where)
             ->where($teamAreaRole)
             ->order($order)

@@ -608,7 +608,8 @@ class Index extends Backend
             $marketplaceId = 'A21TJRUUN4KGV';
         }
 
-        $getFbaResult =   $this->sendGetRequest("https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00");
+        $reqUrl = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00&t=".time();
+        $getFbaResult =   $this->sendGetRequest($reqUrl);
         $getFbaResultObj = json_decode($getFbaResult,true);
 
         if (!$getFbaResultObj || !$getFbaResultObj['status'] || $getFbaResultObj['status'] != 1) {
@@ -995,9 +996,12 @@ class Index extends Backend
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 将 curl_exec() 获取的信息以文件流的形式返回，而不是直接输出  
             curl_setopt($ch, CURLOPT_HEADER, false);        // 不需要响应头  
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 对认证证书来源的检查，0 表示阻止对证书合法性的检查  
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'); // 设置 User-Agent  
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'); // 设置 User-Agent  
             curl_setopt($ch, CURLOPT_TIMEOUT, 10);           // 设置超时限制防止死循环  
-            
+            // curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            //     'X-Forwarded-For: 123.45.67.89', // 伪造的 IP 地址
+            //     'Client-IP: 123.45.67.89'        // 伪造的 IP 地址
+            // ]);
             // 执行 cURL 会话  
             $response = curl_exec($ch);  
             
