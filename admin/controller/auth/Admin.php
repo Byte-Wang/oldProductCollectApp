@@ -214,7 +214,7 @@ class Admin extends Backend
         //团队
         $admin = $this->auth->getAdmin();
         $whereRole = null;
-        if (!in_array(1, $admin->group_arr) && !in_array(2, $admin->group_arr)) {
+        if (!in_array(1, $admin->group_arr) && !in_array(2, $admin->group_arr) && !in_array(5, $admin->group_arr)) {
             $whereRole = ['team_id' => $admin->team_id];
         }
 

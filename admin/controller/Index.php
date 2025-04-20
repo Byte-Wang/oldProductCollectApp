@@ -301,7 +301,7 @@ class Index extends Backend
         
         $whereRole = [];
 
-        if (in_array(1, $admin->group_arr)) { // 系统管理员
+        if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) { // 系统管理员 || 大区负责人
             // 查看全部
         } else if (in_array(3, $admin->group_arr)) { // 团队负责人
             $whereRole = ['ca.team_id' => $admin->team_id];
@@ -1127,7 +1127,7 @@ class Index extends Backend
         $where = null;
         if ($type == 1) {
             //团队
-            if (in_array(1, $admin->group_arr)) {
+            if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) {
                 $team_id = $this->request->get('team_id', 0);
                 if ($team_id) {
                     $where = ['submit_team' => $team_id];
@@ -1157,7 +1157,7 @@ class Index extends Backend
             }
 
         } elseif ($type == 2) {
-            if (!in_array(1, $admin->group_arr)) {
+            if (!in_array(1, $admin->group_arr) && !in_array(5, $admin->group_arr)) {
                 $this->error('权限不足');
             }
             //审核员卡片

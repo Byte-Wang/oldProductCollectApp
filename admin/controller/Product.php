@@ -307,7 +307,7 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
         $teamAreaRole = '';
         if ($type == 1) {
             //团队
-            if (in_array(1, $admin->group_arr)) {
+            if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) {
                 //查看全部
                 //审核员 的 待审核 为 1
             } elseif (in_array(2, $admin->group_arr)) {
@@ -541,7 +541,7 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
             }
 
             $admin = $this->auth->getAdmin();
-            if (in_array(1, $admin->group_arr)) {
+            if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) {
                 //查看全部
                 //超级管理员所有状态都能修改
                 if ($row['state'] == '4') {
@@ -632,7 +632,7 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
         $whereRole = [];
         if ($type == 1) {
             //团队
-            if (in_array(1, $admin->group_arr)) {
+            if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) {
                 //查看全部
                 //审核员 的 待审核 为 1
             } elseif (in_array(2, $admin->group_arr)) {
