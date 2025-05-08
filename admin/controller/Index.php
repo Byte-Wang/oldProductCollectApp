@@ -11,11 +11,12 @@ use think\facade\Validate;
 use app\common\controller\Backend;
 use app\admin\model\AdminLog;
 use think\facade\Cache;
+use app\common\library\Excel;
 
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct"];
 
     public function index()
     {
@@ -338,6 +339,116 @@ class Index extends Backend
             'total' => $result->total(),
             'sql' => $sql,
         ]);
+    }
+
+    public function exportPlugProductRecord(){
+        $page = $this->request->get('page');
+        $limit = $this->request->get('limit');
+        $status = $this->request->get('status');
+        $asin = $this->request->get('asin');
+        $favoriteStatus = $this->request->get('favoriteStatus');
+        $createAdmin = $this->request->get('createAdmin');
+        $createTeam = $this->request->get('createTeam');
+        $createAdminStart = $this->request->get('createTimeStart');
+        $createAdminEnd = $this->request->get('createTimeEnd');
+
+        $admin = $this->auth->getAdmin();
+
+        $queryWhere = [];
+        if ($status) {
+            $queryWhere[] = ['a.status', '=', $status];
+        }
+
+        if ($asin) {
+            $queryWhere[] = ['a.asin', '=', $asin];
+        }
+
+        if ($favoriteStatus == 1) { // 被收藏
+            $queryWhere[] = ['', 'exp', Db::raw('a.favorite <> ""')];
+        } else if ($favoriteStatus == 2) { // 被本人收藏
+            $queryWhere[] = ['a.favorite', 'like', '%,'.$admin->id.',%'];
+        } else if ($favoriteStatus == 3) { // 未被收藏
+            $queryWhere[] = ['', 'exp', Db::raw('(a.favorite is null or a.favorite = "")')];
+        }
+
+        if ($createAdmin && $createAdmin !== null && !empty($createAdmin) && $createAdmin !== 'null') {
+            $queryWhere[] = ['a.create_admin', '=', $createAdmin];
+        }
+
+        if ($createTeam && $createTeam !== null && !empty($createTeam) && $createTeam !== 'null') {
+            $queryWhere[] = ['ca.team_id', '=', $createTeam];
+        }
+
+        if ($createAdminStart && $createAdminEnd) {
+            $queryWhere[] = ['a.create_time', '>=', $createAdminStart];
+            $queryWhere[] = ['a.create_time', '<=', $createAdminEnd];
+        }
+
+        
+        $whereRole = [];
+
+        if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) { // 系统管理员 || 大区负责人
+            // 查看全部
+        } else if (in_array(3, $admin->group_arr)) { // 团队负责人
+            $whereRole = ['ca.team_id' => $admin->team_id];
+        } else { // 普通用户、审核员
+            $whereRole = ['create_admin' => $admin->id];
+        }
+        
+        $teamAreaRole = '';
+        $currentTeamArea = $admin->belong_team_area_id;
+        if ($currentTeamArea && $currentTeamArea != 0) {
+            $teamAreaRole = 'ct.team_area_id = '.$currentTeamArea.' or ca.team_area_id = '.$currentTeamArea;
+        }
+
+        $result = Db::table('ba_plugin_product_record')
+        ->alias('a')
+        ->field('a.*,s.title as station_title,pd.product_name as pd_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
+        ->leftJoin('ba_admin ua', 'a.update_admin = ua.id')
+        ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
+        ->leftJoin('ba_product pd', 'a.asin = pd.asin and (a.station_id = 0 or a.station_id = pd.station_id)')
+        ->leftJoin('ba_station s', 'a.station_id = s.id')
+        ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
+        ->where($teamAreaRole)
+        ->where($queryWhere)
+        ->where($whereRole)
+        ->order('a.update_time', 'desc')
+        ->paginate($limit, false, [
+            'page'  => $page
+        ]);
+        
+        $sql = Db::getLastSql();
+
+        $exportExcel = [
+            'product_name' => '商品标题',
+            'picture_url' => '图片',
+            'create_admin_nickname' => '首次采集人',
+            'create_time' => '首次采集时间',
+            'update_admin_nickname' => '更新数据人',
+            'update_time' => '更新时间',
+            'has_product' => '采集状态',
+            'pd_name' => '采集商品名称',
+            'favorite' => '收藏状态',
+            'asin' => 'ASIN',
+            'station_title' => '站点',
+            'seller' => '卖家',
+            'seller_count' => '卖家数量',
+            'shipping_method' => '配送方式',
+            'category' => '类目',
+            'rank' => '排名',
+            'rating' => '评分',
+            'brand_name' => '品牌名',
+            'wipo_brand_registration_status' => '注册状态(WIPO)',
+            'trademark_office_brand_registration_status' => '注册状态(商标局)',
+            'fba_fee' => 'FBA费用',
+            'weight' => '重量',
+            'profit_margin' => '利润率',
+            'price' => '售价',
+            'listing_date' => '上架日期',
+            'review_status' => '评论状态'
+        ];
+
+        Excel::export($exportExcel, true, $result->items(), '产品列表');
     }
 
     public function getTeamArea(){
