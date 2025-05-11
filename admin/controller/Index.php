@@ -688,7 +688,6 @@ class Index extends Backend
                 'code' => 400,
                 'asin' => $asin,
                 'region' => $region,
-                'resule' => $getFbaResultOb,
                 'desc' => "版本过低，请先联系管理员"
             ]);
             return;
@@ -718,8 +717,99 @@ class Index extends Backend
         }else if ($region == 'in' || $region == 'IN') { // 印度
             $marketplaceId = 'A21TJRUUN4KGV';
         }
+        
+        // 构造 URL
+        $url = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=" . $marketplaceId . "&asin=" . $asin . "&amount=0.00&t=" . time();
+        
+        // 定义代理配置数组
+        $proxyConfigs = [
+            [
+                'ip'   => 's21.js1.dns.2jj.net',
+                'port' => 10611,
+                'user' => 'ljq',
+                'pass' => 'kyv',
+            ],
+            [
+                'ip'   => '192.227.252.109',
+                'port' => 11314,
+                'user' => 'gzz',
+                'pass' => 'akb',
+            ],
+            
+        ];
 
-        $reqUrl = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00&t=".time();
+        // 随机选择一套代理配置
+        $randomIndex = array_rand($proxyConfigs);
+        $selectedProxy = $proxyConfigs[$randomIndex];
+
+        // 分配选中的代理参数
+        $proxy_ip     = $selectedProxy['ip'];
+        $proxy_port   = $selectedProxy['port'];
+        $proxy_user   = $selectedProxy['user'];
+        $proxy_pass   = $selectedProxy['pass'];
+        
+        // 初始化 cURL
+        $ch = curl_init();
+        
+        // 设置 cURL 参数
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 返回结果不直接输出
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // 跟随跳转
+        
+        // 设置代理
+        curl_setopt($ch, CURLOPT_PROXY, "{$proxy_ip}:{$proxy_port}");
+        curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+        
+        // 如果代理需要认证
+        curl_setopt($ch, CURLOPT_PROXYUSERPWD, "{$proxy_user}:{$proxy_pass}");
+        
+        // 可选：设置 User-Agent
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+        
+        // 执行请求
+        $response = curl_exec($ch);
+        
+        // 检查错误
+        if ($response === false) {
+            
+            
+            $this->success('', [
+                'code' => 400,
+                'asin' => $asin,
+                'region' => $region,
+                'resule' => '',
+                'desc' => "查询产品接口失败"
+            ]);
+            
+        } else {
+            $getFbaResultObj = json_decode($response,true);
+            
+            if (!$getFbaResultObj || !$getFbaResultObj['status'] || $getFbaResultObj['status'] != 1) {
+                $this->success('', [
+                    'code' => 400,
+                    'asin' => $asin,
+                    'region' => $region,
+                    'resule' => $response,
+                    'desc' => "查询产品接口失败"
+                ]);
+                return;
+            }
+                
+            $this->success('', [
+                'code' => 200,
+                'asin' => $asin,
+                'region' => $region,
+                'result' => $getFbaResultObj,
+                'desc' => "查询成功"
+            ]);
+        }
+        
+        
+        
+        // 关闭句柄
+        curl_close($ch);
+
+        /*$reqUrl = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00&t=".time();
         $getFbaResult =   $this->sendGetRequest($reqUrl);
         $getFbaResultObj = json_decode($getFbaResult,true);
 
@@ -740,7 +830,7 @@ class Index extends Backend
             'region' => $region,
             'result' => $getFbaResultObj,
             'desc' => "查询成功"
-        ]);
+        ]);*/
     }
 
     public function checkBrand(){
