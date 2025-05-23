@@ -721,21 +721,37 @@ class Index extends Backend
         // 构造 URL
         $url = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=" . $marketplaceId . "&asin=" . $asin . "&amount=0.00&t=" . time();
         
+         
         // 定义代理配置数组
         $proxyConfigs = [
+        //socks5配置项1
             [
-                'ip'   => 's21.js1.dns.2jj.net',
+                'ip'   => 's21.js1.dns.2jj.net',   //到期时间25.6.9
                 'port' => 10611,
                 'user' => 'ljq',
                 'pass' => 'kyv',
             ],
+        //socks5配置项2
+            //[
+            //    'ip'   => '192.227.252.109',    //到期时间25.5.24
+            //    'port' => 11314,
+            //    'user' => 'gzz',
+            //    'pass' => 'akb',
+            //],
+        //socks5配置项3
             [
-                'ip'   => '192.227.252.109',
-                'port' => 11314,
-                'user' => 'gzz',
-                'pass' => 'akb',
+                'ip'   => ' s53.fj2.dns.2jj.net', //到期时间25.6.12
+                'port' => 41576,
+                'user' => '3335',
+                'pass' => '3335',                
             ],
-            
+        //socks5配置项4
+            [
+                'ip'   => 's20.js2.dns.2jj.net', //到期时间25.6.12
+                'port' => 12568,
+                'user' => '3335',
+                'pass' => '3335',
+            ],
         ];
 
         // 随机选择一套代理配置
@@ -766,8 +782,12 @@ class Index extends Backend
         // 可选：设置 User-Agent
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
         
+        $startTime = microtime(true);
         // 执行请求
         $response = curl_exec($ch);
+
+        $endTime = microtime(true);
+        $duration = $endTime - $startTime;
         
         // 检查错误
         if ($response === false) {
@@ -800,7 +820,8 @@ class Index extends Backend
                 'asin' => $asin,
                 'region' => $region,
                 'result' => $getFbaResultObj,
-                'desc' => "查询成功"
+                'desc' => "查询成功",
+                'proxy' => "使用第".$randomIndex."个代理，耗时".$duration."秒",
             ]);
         }
         
