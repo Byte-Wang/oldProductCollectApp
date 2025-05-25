@@ -16,7 +16,7 @@ use app\common\library\Excel;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps"];
 
     public function index()
     {
@@ -649,6 +649,149 @@ class Index extends Backend
            ]);
            return;
         }
+
+       $this->success('', [
+           'code' => 400,
+           'desc' => "only support post"
+       ]);
+   }
+
+   public function getOtps()
+   {
+       $page = $this->request->get('page');
+       $limit = $this->request->get('limit');
+       
+       $result = Db::table('ba_otp')
+           ->alias('a')
+           ->field('a.id,a.desc,a.uri,a.secret,a.acount,a.type,a.issuer,a.create_time')
+           ->order('a.create_time')
+           ->where('a.status', 1)
+           ->paginate($limit, false, [
+               'page'  => $page
+           ]);
+
+       $this->success('', [
+           'list' => $result->items(),
+           'total' => $result->total()
+       ]);
+   }
+
+   public function addOtp()
+   {
+       if ($this->request->isPost()) {
+           $request = $this->request;
+           $tableName = 'ba_otp';
+
+           $desc = $request->post('desc', '');
+           $uri = $request->post('uri', '');
+           $secret = $request->post('secret', '');
+           $acount = $request->post('acount', '');
+           $type = $request->post('type', '');
+           $issuer = $request->post('issuer', '');
+           
+           // 检查必填字段
+           if (empty($desc) || empty($uri) || empty($secret)) {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "描述、URI和密钥不能为空"
+               ]);
+               return;
+           }
+
+           $data = [
+               'desc' => $desc,
+               'uri' => $uri,
+               'secret' => $secret,
+               'acount' => $acount,
+               'type' => $type,
+               'issuer' => $issuer,
+               'create_time' => time(),
+               'status' => 1,
+           ];
+
+           $result = Db::table($tableName)->insert($data);
+
+           if ($result) {
+               $this->success('', [
+                   'code' => 200,
+                   'desc' => "添加成功"
+               ]);
+           } else {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "添加失败"
+               ]);
+           }
+           return;
+       }
+
+       $this->success('', [
+           'code' => 400,
+           'desc' => "only support post"
+       ]);
+   }
+
+   public function editOtp()
+   {
+       if ($this->request->isPost()) {
+           $request = $this->request;
+           $tableName = 'ba_otp';
+
+           $id = $request->post('id', 0);
+           $desc = $request->post('desc', '');
+           $uri = $request->post('uri', '');
+           $secret = $request->post('secret', '');
+           $acount = $request->post('acount', '');
+           $type = $request->post('type', '');
+           $issuer = $request->post('issuer', '');
+           $status = $request->post('status', 1);
+           
+           // 检查必填字段
+           if (empty($id)) {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "ID不能为空"
+               ]);
+               return;
+           }
+
+           // 检查记录是否存在
+           $exists = Db::table($tableName)->where(['id' => $id])->find();
+           if (!$exists) {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "记录不存在"
+               ]);
+               return;
+           }
+
+           $data = [
+               'desc' => $desc,
+               'uri' => $uri,
+               'secret' => $secret,
+               'acount' => $acount,
+               'type' => $type,
+               'issuer' => $issuer,
+               'status' => $status,
+           ];
+
+           $result = Db::table($tableName)
+               ->where(['id' => $id])
+               ->update($data);
+
+           if ($result !== false) {
+               $this->success('', [
+                   'code' => 200,
+                   'desc' => "更新成功"
+               ]);
+           } else {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "更新失败"
+               ]);
+           }
+           return;
+       }
 
        $this->success('', [
            'code' => 400,
