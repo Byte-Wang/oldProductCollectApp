@@ -256,7 +256,9 @@ class Index extends Backend
         ]);
     }
 
-    public function getPlugProductRecord(){
+
+    private function assembleQueryConditions()
+    {
         $page = $this->request->get('page');
         $limit = $this->request->get('limit');
         $status = $this->request->get('status');
@@ -266,6 +268,16 @@ class Index extends Backend
         $createTeam = $this->request->get('createTeam');
         $createAdminStart = $this->request->get('createTimeStart');
         $createAdminEnd = $this->request->get('createTimeEnd');
+        $station = $this->request->get('station');
+        $categoryRank = $this->request->get('categoryRank');
+        $weight = $this->request->get('weight');
+        $shipping = $this->request->get('shipping');
+        $brand = $this->request->get('brand');
+        $price = $this->request->get('price');
+        $profitMargin = $this->request->get('profitMargin');
+        $preview = $this->request->get('preview');
+        $sellerCount = $this->request->get('sellerCount');
+        $reviewStatus = $this->request->get('reviewStatus');
 
         $admin = $this->auth->getAdmin();
 
@@ -299,7 +311,48 @@ class Index extends Backend
             $queryWhere[] = ['a.create_time', '<=', $createAdminEnd];
         }
 
-        
+        if ($station) {
+            $queryWhere[] = ['a.station_id', '=', $station];
+        }
+
+        if ($categoryRank) {
+            $queryWhere[] = ['a.rank', '=', $categoryRank];
+        }
+
+        if ($weight) {
+            $queryWhere[] = ['a.weight', '=', $weight];
+        }
+
+        if ($shipping) {
+            $queryWhere[] = ['a.shipping_method', '=', $shipping];
+        }
+
+        if ($brand) {
+            $queryWhere[] = ['a.brand_name', '=', $brand];
+        }
+
+        if ($price) {
+            $queryWhere[] = ['a.price', '=', $price];
+        }
+
+        if ($profitMargin) {
+            $queryWhere[] = ['a.profit_margin', '=', $profitMargin];
+        }
+
+        if ($preview) {
+            // 这里需要根据 preview 对应的数据库字段进行调整
+            // 假设 preview 对应数据库字段为 preview，示例如下
+            $queryWhere[] = ['a.preview', '=', $preview];
+        }
+
+        if ($sellerCount) {
+            $queryWhere[] = ['a.seller_count', '=', $sellerCount];
+        }
+
+        if ($reviewStatus) {
+            $queryWhere[] = ['a.review_status', '=', $reviewStatus];
+        }
+
         $whereRole = [];
 
         if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) { // 系统管理员 || 大区负责人
@@ -309,28 +362,41 @@ class Index extends Backend
         } else { // 普通用户、审核员
             $whereRole = ['create_admin' => $admin->id];
         }
-        
+
         $teamAreaRole = '';
         $currentTeamArea = $admin->belong_team_area_id;
         if ($currentTeamArea && $currentTeamArea != 0) {
             $teamAreaRole = 'ct.team_area_id = '.$currentTeamArea.' or ca.team_area_id = '.$currentTeamArea;
         }
 
+        return [
+            'page' => $page,
+            'limit' => $limit,
+            'queryWhere' => $queryWhere,
+            'whereRole' => $whereRole,
+            'teamAreaRole' => $teamAreaRole
+        ];
+    }
+
+    public function getPlugProductRecord()
+    {
+        $conditions = $this->assembleQueryConditions();
+
         $result = Db::table('ba_plugin_product_record')
-        ->alias('a')
-        ->field('a.*,s.title as station_title,pd.product_name as pd_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
-        ->leftJoin('ba_admin ua', 'a.update_admin = ua.id')
-        ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
-        ->leftJoin('ba_product pd', 'a.asin = pd.asin and (a.station_id = 0 or a.station_id = pd.station_id)')
-        ->leftJoin('ba_station s', 'a.station_id = s.id')
-        ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
-        ->where($teamAreaRole)
-        ->where($queryWhere)
-        ->where($whereRole)
-        ->order('a.update_time', 'desc')
-        ->paginate($limit, false, [
-            'page'  => $page
-        ]);
+            ->alias('a')
+            ->field('a.*,s.title as station_title,pd.product_name as pd_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
+            ->leftJoin('ba_admin ua', 'a.update_admin = ua.id')
+            ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
+            ->leftJoin('ba_product pd', 'a.asin = pd.asin and (a.station_id = 0 or a.station_id = pd.station_id)')
+            ->leftJoin('ba_station s', 'a.station_id = s.id')
+            ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
+            ->where($conditions['teamAreaRole'])
+            ->where($conditions['queryWhere'])
+            ->where($conditions['whereRole'])
+            ->order('a.update_time', 'desc')
+            ->paginate($conditions['limit'], false, [
+                'page'  => $conditions['page']
+            ]);
         
         $sql = Db::getLastSql();
 
@@ -340,82 +406,25 @@ class Index extends Backend
             'sql' => $sql,
         ]);
     }
-
-    public function exportPlugProductRecord(){
-        $page = $this->request->get('page');
-        $limit = $this->request->get('limit');
-        $status = $this->request->get('status');
-        $asin = $this->request->get('asin');
-        $favoriteStatus = $this->request->get('favoriteStatus');
-        $createAdmin = $this->request->get('createAdmin');
-        $createTeam = $this->request->get('createTeam');
-        $createAdminStart = $this->request->get('createTimeStart');
-        $createAdminEnd = $this->request->get('createTimeEnd');
-
-        $admin = $this->auth->getAdmin();
-
-        $queryWhere = [];
-        if ($status) {
-            $queryWhere[] = ['a.status', '=', $status];
-        }
-
-        if ($asin) {
-            $queryWhere[] = ['a.asin', '=', $asin];
-        }
-
-        if ($favoriteStatus == 1) { // 被收藏
-            $queryWhere[] = ['', 'exp', Db::raw('a.favorite <> ""')];
-        } else if ($favoriteStatus == 2) { // 被本人收藏
-            $queryWhere[] = ['a.favorite', 'like', '%,'.$admin->id.',%'];
-        } else if ($favoriteStatus == 3) { // 未被收藏
-            $queryWhere[] = ['', 'exp', Db::raw('(a.favorite is null or a.favorite = "")')];
-        }
-
-        if ($createAdmin && $createAdmin !== null && !empty($createAdmin) && $createAdmin !== 'null') {
-            $queryWhere[] = ['a.create_admin', '=', $createAdmin];
-        }
-
-        if ($createTeam && $createTeam !== null && !empty($createTeam) && $createTeam !== 'null') {
-            $queryWhere[] = ['ca.team_id', '=', $createTeam];
-        }
-
-        if ($createAdminStart && $createAdminEnd) {
-            $queryWhere[] = ['a.create_time', '>=', $createAdminStart];
-            $queryWhere[] = ['a.create_time', '<=', $createAdminEnd];
-        }
-
-        
-        $whereRole = [];
-
-        if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) { // 系统管理员 || 大区负责人
-            // 查看全部
-        } else if (in_array(3, $admin->group_arr)) { // 团队负责人
-            $whereRole = ['ca.team_id' => $admin->team_id];
-        } else { // 普通用户、审核员
-            $whereRole = ['create_admin' => $admin->id];
-        }
-        
-        $teamAreaRole = '';
-        $currentTeamArea = $admin->belong_team_area_id;
-        if ($currentTeamArea && $currentTeamArea != 0) {
-            $teamAreaRole = 'ct.team_area_id = '.$currentTeamArea.' or ca.team_area_id = '.$currentTeamArea;
-        }
+    public function exportPlugProductRecord()
+    {
+        $conditions = $this->assembleQueryConditions();
 
         $result = Db::table('ba_plugin_product_record')
-        ->alias('a')
-        ->field('a.*,s.title as station_title,pd.product_name as pd_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
-        ->leftJoin('ba_admin ua', 'a.update_admin = ua.id')
-        ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
-        ->leftJoin('ba_product pd', 'a.asin = pd.asin and (a.station_id = 0 or a.station_id = pd.station_id)')
-        ->leftJoin('ba_station s', 'a.station_id = s.id')
-        ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
-        ->where($teamAreaRole)
-        ->where($queryWhere)
-        ->where($whereRole)
-        ->order('a.update_time', 'desc')
-        ->paginate($limit, false, [
-            'page'  => $page
-        ]);
+            ->alias('a')
+            ->field('a.*,s.title as station_title,pd.product_name as pd_name,CASE WHEN pd.id IS NOT NULL THEN 1 ELSE 0 END AS has_product, ua.nickname AS update_admin_nickname, ca.nickname AS create_admin_nickname')
+            ->leftJoin('ba_admin ua', 'a.update_admin = ua.id')
+            ->leftJoin('ba_admin ca', 'a.create_admin = ca.id')
+            ->leftJoin('ba_product pd', 'a.asin = pd.asin and (a.station_id = 0 or a.station_id = pd.station_id)')
+            ->leftJoin('ba_station s', 'a.station_id = s.id')
+            ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
+            ->where($conditions['teamAreaRole'])
+            ->where($conditions['queryWhere'])
+            ->where($conditions['whereRole'])
+            ->order('a.update_time', 'desc')
+            ->paginate($conditions['limit'], false, [
+                'page'  => $conditions['page']
+            ]);
         
         $sql = Db::getLastSql();
 
