@@ -256,7 +256,6 @@ class Index extends Backend
         ]);
     }
 
-
     private function assembleQueryConditions()
     {
         $page = $this->request->get('page');
@@ -459,6 +458,177 @@ class Index extends Backend
 
         Excel::export($exportExcel, true, $result->items(), '产品列表');
     }
+    
+    
+   public function getOtps()
+   {
+       $page = $this->request->get('page');
+       $limit = $this->request->get('limit');
+       
+       $admin = $this->auth->getAdmin();
+       $currentTeamArea = $admin->belong_team_area_id;
+       $teamAreaRole = '';
+        if ($currentTeamArea && $currentTeamArea != 0) {
+            $teamAreaRole = 'a.team_area_id = '.$currentTeamArea;
+        }
+        
+        $userPermissionRole = '';
+        if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) {
+             $userPermissionRole = ''; // 超级管理员和大区管理员不限制
+        } else {
+            $userPermissionRole = 'a.permission_admin_ids like "%'.$admin->id.',%"'; // 其他人员根据permission_admin_ids判断
+        }
+       
+       $result = Db::table('ba_otp')
+           ->alias('a')
+           ->field('a.id,a.desc,a.uri,a.secret,a.acount,a.type,a.issuer,a.create_time,a.permission_admin_ids,ta.name as teamAreaName,a.team_area_id,(select GROUP_CONCAT(CONCAT("[", id, "]", username) SEPARATOR "、") AS names_list from ba_admin where FIND_IN_SET(id, a.permission_admin_ids)) as userList')
+           ->leftJoin('ba_team_area ta', 'ta.id = a.team_area_id')
+           ->order('a.create_time')
+           ->where('a.status', 1)
+           ->where($teamAreaRole)
+           ->where($userPermissionRole)
+           ->paginate($limit, false, [
+               'page'  => $page
+           ]);
+$sql = Db::getLastSql();
+       $this->success('', [
+           'list' => $result->items(),
+           'total' => $result->total(),
+           'sql' => $sql
+       ]);
+   }
+
+   public function addOtp()
+   {
+       if ($this->request->isPost()) {
+           $request = $this->request;
+           $tableName = 'ba_otp';
+
+           $desc = $request->post('desc', '');
+           $uri = $request->post('uri', '');
+           $secret = $request->post('secret', '');
+           $acount = $request->post('acount', '');
+           $type = $request->post('type', '');
+           $issuer = $request->post('issuer', '');
+           $teamAreaId = $request->post('team_area_id', '');
+           
+           // 检查必填字段
+           if (empty($desc) || empty($uri) || empty($secret)) {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "描述、URI和密钥不能为空"
+               ]);
+               return;
+           }
+
+           $data = [
+               'desc' => $desc,
+               'uri' => $uri,
+               'secret' => $secret,
+               'acount' => $acount,
+               'type' => $type,
+               'issuer' => $issuer,
+               'create_time' => time(),
+               'team_area_id' => $teamAreaId,
+               'status' => 1,
+           ];
+
+           $result = Db::table($tableName)->insert($data);
+
+           if ($result) {
+               $this->success('', [
+                   'code' => 200,
+                   'desc' => "添加成功"
+               ]);
+           } else {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "添加失败"
+               ]);
+           }
+           return;
+       }
+
+       $this->success('', [
+           'code' => 400,
+           'desc' => "only support post"
+       ]);
+   }
+
+   public function editOtp()
+   {
+       if ($this->request->isPost()) {
+           $request = $this->request;
+           $tableName = 'ba_otp';
+
+           $id = $request->post('id', 0);
+           $desc = $request->post('desc', '');
+           $uri = $request->post('uri', '');
+           $secret = $request->post('secret', '');
+           $acount = $request->post('acount', '');
+           $type = $request->post('type', '');
+           $issuer = $request->post('issuer', '');
+           $status = $request->post('status', 1);
+           $permission_admin_ids = $request->post('permission_admin_ids', '');
+           $teamAreaId = $request->post('team_area_id', '');
+           
+           // 检查必填字段
+           if (empty($id)) {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "ID不能为空"
+               ]);
+               return;
+           }
+
+           // 检查记录是否存在
+           $exists = Db::table($tableName)->where(['id' => $id])->find();
+           if (!$exists) {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "记录不存在"
+               ]);
+               return;
+           }
+
+           $data = [
+               'desc' => $desc,
+               'uri' => $uri,
+               'secret' => $secret,
+               'acount' => $acount,
+               'type' => $type,
+               'issuer' => $issuer,
+               'status' => $status,
+               'team_area_id' => $teamAreaId,
+           ];
+           
+            if (strlen($permission_admin_ids) > 0) {
+               $data = ['permission_admin_ids' => $permission_admin_ids];
+            }
+
+           $result = Db::table($tableName)
+               ->where(['id' => $id])
+               ->update($data);
+
+           if ($result !== false) {
+               $this->success('', [
+                   'code' => 200,
+                   'desc' => "更新成功"
+               ]);
+           } else {
+               $this->success('', [
+                   'code' => 400,
+                   'desc' => "更新失败"
+               ]);
+           }
+           return;
+       }
+
+       $this->success('', [
+           'code' => 400,
+           'desc' => "only support post"
+       ]);
+   }
 
     public function getTeamArea(){
         $page = $this->request->get('page');
@@ -665,149 +835,6 @@ class Index extends Backend
        ]);
    }
 
-   public function getOtps()
-   {
-       $page = $this->request->get('page');
-       $limit = $this->request->get('limit');
-       
-       $result = Db::table('ba_otp')
-           ->alias('a')
-           ->field('a.id,a.desc,a.uri,a.secret,a.acount,a.type,a.issuer,a.create_time')
-           ->order('a.create_time')
-           ->where('a.status', 1)
-           ->paginate($limit, false, [
-               'page'  => $page
-           ]);
-
-       $this->success('', [
-           'list' => $result->items(),
-           'total' => $result->total()
-       ]);
-   }
-
-   public function addOtp()
-   {
-       if ($this->request->isPost()) {
-           $request = $this->request;
-           $tableName = 'ba_otp';
-
-           $desc = $request->post('desc', '');
-           $uri = $request->post('uri', '');
-           $secret = $request->post('secret', '');
-           $acount = $request->post('acount', '');
-           $type = $request->post('type', '');
-           $issuer = $request->post('issuer', '');
-           
-           // 检查必填字段
-           if (empty($desc) || empty($uri) || empty($secret)) {
-               $this->success('', [
-                   'code' => 400,
-                   'desc' => "描述、URI和密钥不能为空"
-               ]);
-               return;
-           }
-
-           $data = [
-               'desc' => $desc,
-               'uri' => $uri,
-               'secret' => $secret,
-               'acount' => $acount,
-               'type' => $type,
-               'issuer' => $issuer,
-               'create_time' => time(),
-               'status' => 1,
-           ];
-
-           $result = Db::table($tableName)->insert($data);
-
-           if ($result) {
-               $this->success('', [
-                   'code' => 200,
-                   'desc' => "添加成功"
-               ]);
-           } else {
-               $this->success('', [
-                   'code' => 400,
-                   'desc' => "添加失败"
-               ]);
-           }
-           return;
-       }
-
-       $this->success('', [
-           'code' => 400,
-           'desc' => "only support post"
-       ]);
-   }
-
-   public function editOtp()
-   {
-       if ($this->request->isPost()) {
-           $request = $this->request;
-           $tableName = 'ba_otp';
-
-           $id = $request->post('id', 0);
-           $desc = $request->post('desc', '');
-           $uri = $request->post('uri', '');
-           $secret = $request->post('secret', '');
-           $acount = $request->post('acount', '');
-           $type = $request->post('type', '');
-           $issuer = $request->post('issuer', '');
-           $status = $request->post('status', 1);
-           
-           // 检查必填字段
-           if (empty($id)) {
-               $this->success('', [
-                   'code' => 400,
-                   'desc' => "ID不能为空"
-               ]);
-               return;
-           }
-
-           // 检查记录是否存在
-           $exists = Db::table($tableName)->where(['id' => $id])->find();
-           if (!$exists) {
-               $this->success('', [
-                   'code' => 400,
-                   'desc' => "记录不存在"
-               ]);
-               return;
-           }
-
-           $data = [
-               'desc' => $desc,
-               'uri' => $uri,
-               'secret' => $secret,
-               'acount' => $acount,
-               'type' => $type,
-               'issuer' => $issuer,
-               'status' => $status,
-           ];
-
-           $result = Db::table($tableName)
-               ->where(['id' => $id])
-               ->update($data);
-
-           if ($result !== false) {
-               $this->success('', [
-                   'code' => 200,
-                   'desc' => "更新成功"
-               ]);
-           } else {
-               $this->success('', [
-                   'code' => 400,
-                   'desc' => "更新失败"
-               ]);
-           }
-           return;
-       }
-
-       $this->success('', [
-           'code' => 400,
-           'desc' => "only support post"
-       ]);
-   }
-
     public function checkVersion($version){
         return $version == '20241019050933';
     }
@@ -873,7 +900,6 @@ class Index extends Backend
         // 构造 URL
         $url = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=" . $marketplaceId . "&asin=" . $asin . "&amount=0.00&t=" . time();
         
-         
         // 定义代理配置数组
         $proxyConfigs = [
         //socks5配置项1
@@ -885,25 +911,26 @@ class Index extends Backend
             ],
         //socks5配置项2
             //[
-            //    'ip'   => '192.227.252.109',    //到期时间25.5.24
-            //    'port' => 11314,
-            //    'user' => 'gzz',
-            //    'pass' => 'akb',
+                //'ip'   => '119.91.32.182',    //到期时间2026/3/10
+                //'port' => 11542,
+                //'user' => 'username',
+                //'pass' => 'password',
             //],
         //socks5配置项3
             [
-                'ip'   => ' s53.fj2.dns.2jj.net', //到期时间25.6.12
-                'port' => 41576,
-                'user' => '3335',
-                'pass' => '3335',                
+                'ip'   => 's46.fj2.dns.2jj.net', //到期时间25.7.11
+                'port' => 41379,
+                'user' => '3557',
+                'pass' => '3557',                
             ],
         //socks5配置项4
             [
-                'ip'   => 's20.js2.dns.2jj.net', //到期时间25.6.12
-                'port' => 12568,
-                'user' => '3335',
-                'pass' => '3335',
+                'ip'   => 's28.zj2.dns.2jj.net', //到期时间25.7.11
+                'port' => 20685,
+                'user' => '3557',
+                'pass' => '3557',
             ],
+            
         ];
 
         // 随机选择一套代理配置
@@ -934,13 +961,13 @@ class Index extends Backend
         // 可选：设置 User-Agent
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
         
-        $startTime = microtime(true);
         // 执行请求
+        $startTime = microtime(true);
+        
         $response = curl_exec($ch);
-
+        
         $endTime = microtime(true);
         $duration = $endTime - $startTime;
-        
         // 检查错误
         if ($response === false) {
             
@@ -950,7 +977,7 @@ class Index extends Backend
                 'asin' => $asin,
                 'region' => $region,
                 'resule' => '',
-                'desc' => "查询产品接口失败"
+                'desc' => "查询产品接口失败，使用第".$randomIndex."个代理（".$proxy_ip.")"
             ]);
             
         } else {
@@ -962,7 +989,7 @@ class Index extends Backend
                     'asin' => $asin,
                     'region' => $region,
                     'resule' => $response,
-                    'desc' => "查询产品接口失败"
+                    'desc' => "查询产品接口失败，使用第".$randomIndex."个代理（".$proxy_ip.")"
                 ]);
                 return;
             }
@@ -972,8 +999,7 @@ class Index extends Backend
                 'asin' => $asin,
                 'region' => $region,
                 'result' => $getFbaResultObj,
-                'desc' => "查询成功",
-                'proxy' => "使用第".$randomIndex."个代理，耗时".$duration."秒",
+                'desc' => "查询成功，使用第".$randomIndex."个代理(".$proxy_ip.")，耗时".$duration."秒",
             ]);
         }
         
@@ -1289,7 +1315,7 @@ class Index extends Backend
             }
 
         } elseif ($region == 'uk') {
-            $params = [
+            /*$params = [
                 "pageNum" => 1,
                 "pageSize" => 10,
                 "gsFor" => "",
@@ -1331,7 +1357,13 @@ class Index extends Backend
             
             $resultObj = json_decode($result,true);
 
-            var_dump($resultObj);
+            var_dump($result);*/
+            $this->success('', [
+                'code' => 400,
+                'brand' => $brand,
+                'region' => $region,
+                'resule' => ""
+            ]);
         }
 
        
