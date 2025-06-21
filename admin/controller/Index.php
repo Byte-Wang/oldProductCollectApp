@@ -500,6 +500,7 @@ $sql = Db::getLastSql();
 
    public function addOtp()
    {
+        
        if ($this->request->isPost()) {
            $request = $this->request;
            $tableName = 'ba_otp';
@@ -511,6 +512,8 @@ $sql = Db::getLastSql();
            $type = $request->post('type', '');
            $issuer = $request->post('issuer', '');
            $teamAreaId = $request->post('team_area_id', '');
+           
+         
            
            // 检查必填字段
            if (empty($desc) || empty($uri) || empty($secret)) {
@@ -530,6 +533,7 @@ $sql = Db::getLastSql();
                'issuer' => $issuer,
                'create_time' => time(),
                'team_area_id' => $teamAreaId,
+               'permission_admin_ids' => '',
                'status' => 1,
            ];
 
