@@ -464,12 +464,16 @@ class Index extends Backend
    {
        $page = $this->request->get('page');
        $limit = $this->request->get('limit');
+       $desc = $this->request->get('desc');
+       $team_area_id = $this->request->get('team_area_id');
        
        $admin = $this->auth->getAdmin();
        $currentTeamArea = $admin->belong_team_area_id;
        $teamAreaRole = '';
         if ($currentTeamArea && $currentTeamArea != 0) {
             $teamAreaRole = 'a.team_area_id = '.$currentTeamArea;
+        } else if ($team_area_id && $team_area_id != 0) {
+            $teamAreaRole = 'a.team_area_id = '.$team_area_id;
         }
         
         $userPermissionRole = '';
@@ -477,6 +481,11 @@ class Index extends Backend
              $userPermissionRole = ''; // 超级管理员和大区管理员不限制
         } else {
             $userPermissionRole = 'a.permission_admin_ids like "%'.$admin->id.',%"'; // 其他人员根据permission_admin_ids判断
+        }
+
+        $searchWhere = '';
+        if ($desc && $desc != '') {
+            $searchWhere = 'a.desc like "%'.$desc.'%"';
         }
        
        $result = Db::table('ba_otp')
@@ -487,6 +496,7 @@ class Index extends Backend
            ->where('a.status', 1)
            ->where($teamAreaRole)
            ->where($userPermissionRole)
+           ->where($searchWhere)
            ->paginate($limit, false, [
                'page'  => $page
            ]);
