@@ -78,11 +78,20 @@ class Team extends Backend
         if (!in_array(1, $admin->group_arr) && !in_array(2, $admin->group_arr) && !in_array(5, $admin->group_arr)) {
             $whereRole = ['id' => $admin->team_id];
         }
+
+        $admin = $this->auth->getAdmin();
+        $teamAreaRole = '';
+        $currentTeamArea = $admin->belong_team_area_id;
+        if ($currentTeamArea && $currentTeamArea != 0) {
+            $teamAreaRole = 'team.team_area_id = '.$currentTeamArea;
+        }
+
         $res = $this->model
             ->withJoin($this->withJoinTable, $this->withJoinType)
             ->alias($alias)
             ->where($where)
             ->where($whereRole)
+            ->where($teamAreaRole)
             ->order($order)
             ->paginate(9999);
 
