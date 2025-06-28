@@ -860,7 +860,7 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
     public function allotSelect()
     {
         $uids = Db::name('admin_group_access')->where(['group_id' => 2])->column('uid');
-
+        
         $admin = $this->auth->getAdmin();
         $teamAreaRole = '';
         $currentTeamArea = $admin->belong_team_area_id;
@@ -875,6 +875,7 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
             ->whereIn('admin.id', $uids)
             ->where($teamAreaRole)
             ->paginate(9999);
+
 
         $this->success('', [
             'list' => $res->items(),

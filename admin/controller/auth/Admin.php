@@ -218,6 +218,7 @@ class Admin extends Backend
             $whereRole = ['team_id' => $admin->team_id];
         }
 
+        
         $admin = $this->auth->getAdmin();
         $teamAreaRole = '';
         $currentTeamArea = $admin->belong_team_area_id;
@@ -229,6 +230,7 @@ class Admin extends Backend
             ->leftJoin('ba_team t', 't.id = admin.team_id')
             ->withJoin($this->withJoinTable, $this->withJoinType)
             ->alias($alias)
+             ->field('admin.*')
             ->where($where)
             ->where($whereRole)
             ->where($teamAreaRole)
