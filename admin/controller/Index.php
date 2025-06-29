@@ -914,42 +914,8 @@ $sql = Db::getLastSql();
         // 构造 URL
         $url = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=" . $marketplaceId . "&asin=" . $asin . "&amount=0.00&t=" . time();
         
-        // 定义代理配置数组
-        $proxyConfigs = [
-        //socks5配置项1
-            [
-                'ip'   => 's21.js1.dns.2jj.net',   //到期时间25.6.9
-                'port' => 10611,
-                'user' => 'ljq',
-                'pass' => 'kyv',
-            ],
-        //socks5配置项2
-            //[
-                //'ip'   => '119.91.32.182',    //到期时间2026/3/10
-                //'port' => 11542,
-                //'user' => 'username',
-                //'pass' => 'password',
-            //],
-        //socks5配置项3
-            [
-                'ip'   => 's46.fj2.dns.2jj.net', //到期时间25.7.11
-                'port' => 41379,
-                'user' => '3557',
-                'pass' => '3557',                
-            ],
-        //socks5配置项4
-            [
-                'ip'   => 's28.zj2.dns.2jj.net', //到期时间25.7.11
-                'port' => 20685,
-                'user' => '3557',
-                'pass' => '3557',
-            ],
-            
-        ];
-
-        // 随机选择一套代理配置
-        $randomIndex = array_rand($proxyConfigs);
-        $selectedProxy = $proxyConfigs[$randomIndex];
+        
+        $selectedProxy = $this->getRandomProxy();
 
         // 分配选中的代理参数
         $proxy_ip     = $selectedProxy['ip'];
@@ -1058,10 +1024,10 @@ $sql = Db::getLastSql();
         ],3);
     } 
 
-    public function checkBrandByWipo($params, $retryTimes){
-        $brand = $params['brand'];
-        $region = $params['region'];
-        $version = $params['version'];
+    public function checkBrandByWipo($reqParams, $retryTimes){
+        $brand = $reqParams['brand'];
+        $region = $reqParams['region'];
+        $version = $reqParams['version'];
         
         if (!$this->checkVersion($version)) {
             $this->success('', [
@@ -1113,18 +1079,31 @@ $sql = Db::getLastSql();
             'CLIENT-IP:'.$ip,
             'X-FORWARDED-FOR:'.$ip,
             'hashsearch:'.$hashsearch,
-            'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+            'origin:https://branddb.wipo.int',
+            'pragma:no-cache',
+            'priority:u=1, i',
+            'referer:https://branddb.wipo.int',
+            'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
         );
 
         $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header);
+        
+        
+        // $randomProxy = $this->getRandomProxy();
+        // // 请求参数
+        // $url = 'https://api.branddb.wipo.int/search';
+        // // 发送请求
+        // $getResult = $this->postRequest($url, $params, $header, $randomProxy);
+        
+         
 
         if (!is_string($getResult) || !base64_decode($getResult, true)) {  
             if ($retryTimes > 0) {
-                $this->checkBrandByWipo($params, $retryTimes - 1);
+                $this->checkBrandByWipo($reqParams, $retryTimes - 1);
                 return;
             }
             $this->success('', [
-                'code' => 200,
+                'code' => 400,
                 'brand' => $brand,
                 'region' => $region,
                 'result' => $getResult,
@@ -1143,6 +1122,90 @@ $sql = Db::getLastSql();
             ],
             'desc' => "查询成功"
         ]);
+    }
+    
+    public function postRequest($url, $data = [], $headers = [], $proxy = null) {
+        $ch = curl_init();
+        
+        // 基本CURL配置
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, is_array($data) ? http_build_query($data) : $data);
+        
+        // 设置请求头
+        if (!empty($headers)) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+        
+        // 代理配置
+        if ($proxy) {
+            curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5); // SOCKS5代理
+            curl_setopt($ch, CURLOPT_PROXY, $proxy['ip'] . ':' . $proxy['port']);
+            
+            if (!empty($proxy['user']) && !empty($proxy['pass'])) {
+                curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxy['user'] . ':' . $proxy['pass']);
+            }
+        }
+        
+        // 执行请求
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        
+        if (curl_errno($ch)) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new Exception("CURL请求失败: " . $error);
+        }
+        
+        curl_close($ch);
+        
+        return [
+            'response' => $response,
+            'http_code' => $httpCode
+        ];
+    }
+    
+    public function getRandomProxy() {
+        $proxyConfigs = [
+        //socks5配置项1
+            [
+                'ip'   => 's21.js1.dns.2jj.net',   //到期时间25.6.9
+                'port' => 10611,
+                'user' => 'ljq',
+                'pass' => 'kyv',
+            ],
+        //socks5配置项2
+            //[
+                //'ip'   => '119.91.32.182',    //到期时间2026/3/10
+                //'port' => 11542,
+                //'user' => 'username',
+                //'pass' => 'password',
+            //],
+        //socks5配置项3
+            [
+                'ip'   => 's46.fj2.dns.2jj.net', //到期时间25.7.11
+                'port' => 41379,
+                'user' => '3557',
+                'pass' => '3557',                
+            ],
+        //socks5配置项4
+            [
+                'ip'   => 's28.zj2.dns.2jj.net', //到期时间25.7.11
+                'port' => 20685,
+                'user' => '3557',
+                'pass' => '3557',
+            ],
+            
+        ];
+        
+        if (empty($proxyConfigs)) {
+            return null;
+        }
+        
+        $randomIndex = array_rand($proxyConfigs);
+        return $proxyConfigs[$randomIndex];
     }
 
     public function generateUuid() {  
