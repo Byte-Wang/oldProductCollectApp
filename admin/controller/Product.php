@@ -825,6 +825,8 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
                 $this->error("未选择有效数据");
             }
             $result = false;
+            $hasSuccess = false;
+            $failedReason = "";
             Db::startTrans();
             try {
                 // 只能分配审核通过的数据
@@ -834,6 +836,11 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
                         //初审通过，或者是已初审，并且未二审的。都可以分配。
                         $item['allot_id'] = $allotId;
                         $item['state'] = '4';  //改为已分配/未二审状态
+                        $hasSuccess = true;
+                    } else if ($item['second_user'] == 0) {
+                         $failedReason = "已存在二审审核员信息";
+                    } else if ($item['state'] != '1') {
+                        $failedReason = "状态不是待审核状态";
                     }
                 }
                 //保存全部数据
@@ -850,7 +857,11 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
                 $this->error($e->getMessage());
             }
             if ($result !== false) {
-                $this->success("分配成功");
+                if ($hasSuccess) {
+                    $this->success("分配成功");
+                } else {
+                    $this->error("分配失败，". $failedReason);
+                }
             } else {
                 $this->error("分配失败");
             }
