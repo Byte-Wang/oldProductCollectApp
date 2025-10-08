@@ -22,6 +22,7 @@ class Product extends Model
     protected $updateTime = 'updatetime';
 
     public $exportExcel = [
+        'id' => 'ID',
         'asin' => 'ASIN',
         'category_rank' => '类目排名',
         'category' => '类目',
