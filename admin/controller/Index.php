@@ -850,7 +850,7 @@ $sql = Db::getLastSql();
    }
 
     public function checkVersion($version){
-        return $version == '20241019050933';
+        return $version == '20250825214500';
     }
 
     public function checkChromePlugVersion(){
@@ -911,105 +911,110 @@ $sql = Db::getLastSql();
             $marketplaceId = 'A21TJRUUN4KGV';
         }
         
-        // 构造 URL
-        $url = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=" . $marketplaceId . "&asin=" . $asin . "&amount=0.00&t=" . time();
+        //Fba请求方式：0 - 走代理；1 - 服务器直接请求；
+        $requestType=0;
         
-        
-        $selectedProxy = $this->getRandomProxy();
-
-        // 分配选中的代理参数
-        $proxy_ip     = $selectedProxy['ip'];
-        $proxy_port   = $selectedProxy['port'];
-        $proxy_user   = $selectedProxy['user'];
-        $proxy_pass   = $selectedProxy['pass'];
-        
-        // 初始化 cURL
-        $ch = curl_init();
-        
-        // 设置 cURL 参数
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 返回结果不直接输出
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // 跟随跳转
-        
-        // 设置代理
-        curl_setopt($ch, CURLOPT_PROXY, "{$proxy_ip}:{$proxy_port}");
-        curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-        
-        // 如果代理需要认证
-        curl_setopt($ch, CURLOPT_PROXYUSERPWD, "{$proxy_user}:{$proxy_pass}");
-        
-        // 可选：设置 User-Agent
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-        
-        // 执行请求
-        $startTime = microtime(true);
-        
-        $response = curl_exec($ch);
-        
-        $endTime = microtime(true);
-        $duration = $endTime - $startTime;
-        // 检查错误
-        if ($response === false) {
+        if ($requestType == 1) {
+            // 构造 URL
+            $url = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=" . $marketplaceId . "&asin=" . $asin . "&amount=0.00&t=" . time();
             
             
-            $this->success('', [
-                'code' => 400,
-                'asin' => $asin,
-                'region' => $region,
-                'resule' => '',
-                'desc' => "查询产品接口失败，使用第".$randomIndex."个代理（".$proxy_ip.")"
-            ]);
+            $selectedProxy = $this->getRandomProxy();
+    
+            // 分配选中的代理参数
+            $proxy_ip     = $selectedProxy['ip'];
+            $proxy_port   = $selectedProxy['port'];
+            $proxy_user   = $selectedProxy['user'];
+            $proxy_pass   = $selectedProxy['pass'];
+            
+            // 初始化 cURL
+            $ch = curl_init();
+            
+            // 设置 cURL 参数
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 返回结果不直接输出
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // 跟随跳转
+            
+            // 设置代理
+            curl_setopt($ch, CURLOPT_PROXY, "{$proxy_ip}:{$proxy_port}");
+            curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+            
+            // 如果代理需要认证
+            curl_setopt($ch, CURLOPT_PROXYUSERPWD, "{$proxy_user}:{$proxy_pass}");
+            
+            // 可选：设置 User-Agent
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+            
+            // 执行请求
+            $startTime = microtime(true);
+            
+            $response = curl_exec($ch);
+            
+            $endTime = microtime(true);
+            $duration = $endTime - $startTime;
+            // 检查错误
+            if ($response === false) {
+                
+                
+                $this->success('', [
+                    'code' => 400,
+                    'asin' => $asin,
+                    'region' => $region,
+                    'resule' => '',
+                    'desc' => "查询产品接口失败，使用代理（".$proxy_ip.")"
+                ]);
+                
+            } else {
+                $getFbaResultObj = json_decode($response,true);
+                
+                if (!$getFbaResultObj || !$getFbaResultObj['status'] || $getFbaResultObj['status'] != 1) {
+                    $this->success('', [
+                        'code' => 400,
+                        'asin' => $asin,
+                        'region' => $region,
+                        'resule' => $response,
+                        'desc' => "查询产品接口失败，使用代理（".$proxy_ip.")"
+                    ]);
+                    return;
+                }
+                    
+                $this->success('', [
+                    'code' => 200,
+                    'asin' => $asin,
+                    'region' => $region,
+                    'result' => $getFbaResultObj,
+                    'desc' => "查询成功，使用代理(".$proxy_ip.")，耗时".$duration."秒",
+                ]);
+            }
+            
+            // 关闭句柄
+            curl_close($ch);
             
         } else {
-            $getFbaResultObj = json_decode($response,true);
-            
+    
+            $reqUrl = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00&t=".time();
+            $getFbaResult =   $this->sendGetRequest($reqUrl);
+            $getFbaResultObj = json_decode($getFbaResult,true);
+    
             if (!$getFbaResultObj || !$getFbaResultObj['status'] || $getFbaResultObj['status'] != 1) {
                 $this->success('', [
                     'code' => 400,
                     'asin' => $asin,
                     'region' => $region,
-                    'resule' => $response,
-                    'desc' => "查询产品接口失败，使用第".$randomIndex."个代理（".$proxy_ip.")"
+                    'resule' => $getFbaResultOb,
+                    'desc' => "查询产品接口失败"
                 ]);
                 return;
             }
-                
+    
             $this->success('', [
                 'code' => 200,
                 'asin' => $asin,
                 'region' => $region,
                 'result' => $getFbaResultObj,
-                'desc' => "查询成功，使用第".$randomIndex."个代理(".$proxy_ip.")，耗时".$duration."秒",
+                'desc' => "本地服务器直接查询成功"
             ]);
         }
-        
-        
-        
-        // 关闭句柄
-        curl_close($ch);
-
-        /*$reqUrl = "https://das-server.tool4seller.cn/ap/fba/calculate?marketplaceId=".$marketplaceId."&asin=".$asin."&amount=0.00&t=".time();
-        $getFbaResult =   $this->sendGetRequest($reqUrl);
-        $getFbaResultObj = json_decode($getFbaResult,true);
-
-        if (!$getFbaResultObj || !$getFbaResultObj['status'] || $getFbaResultObj['status'] != 1) {
-            $this->success('', [
-                'code' => 400,
-                'asin' => $asin,
-                'region' => $region,
-                'resule' => $getFbaResultOb,
-                'desc' => "查询产品接口失败"
-            ]);
-            return;
-        }
-
-        $this->success('', [
-            'code' => 200,
-            'asin' => $asin,
-            'region' => $region,
-            'result' => $getFbaResultObj,
-            'desc' => "查询成功"
-        ]);*/
     }
 
     public function checkBrand(){
@@ -1107,6 +1112,7 @@ $sql = Db::getLastSql();
                 'brand' => $brand,
                 'region' => $region,
                 'result' => $getResult,
+                'header' => $header,
                 'desc' => "查询失败"
             ]);
             return;
@@ -1166,37 +1172,44 @@ $sql = Db::getLastSql();
             'http_code' => $httpCode
         ];
     }
-    
+//代理配置2025.7.8    
     public function getRandomProxy() {
         $proxyConfigs = [
-        //socks5配置项1
+        //socks5配置项1  到期11-14
             [
-                'ip'   => 's21.js1.dns.2jj.net',   //到期时间25.6.9
-                'port' => 10611,
-                'user' => 'ljq',
-                'pass' => 'kyv',
+                'ip'   => '121.237.182.18', 
+                'port' => 11806,
+                'user' => '5579',
+                'pass' => '5579',
             ],
-        //socks5配置项2
-            //[
-                //'ip'   => '119.91.32.182',    //到期时间2026/3/10
-                //'port' => 11542,
-                //'user' => 'username',
-                //'pass' => 'password',
-            //],
+               
+            [
+                'ip'   => '203.83.236.230', 
+                'port' => 11310,
+                'user' => '5579',
+                'pass' => '5579',
+            ],
+               
+            [
+                'ip'   => '125.122.153.5', 
+                'port' => 11217,
+                'user' => '5579',
+                'pass' => '5579',
+            ],
+        // //socks5配置项2
+        //     [
+        //         'ip'   => '223.15.246.169',    //到期时间11-12
+        //         'port' => 11322,
+        //         'user' => '5579',
+        //         'pass' => '5579',
+            // ],
         //socks5配置项3
-            [
-                'ip'   => 's46.fj2.dns.2jj.net', //到期时间25.7.11
-                'port' => 41379,
-                'user' => '3557',
-                'pass' => '3557',                
-            ],
-        //socks5配置项4
-            [
-                'ip'   => 's28.zj2.dns.2jj.net', //到期时间25.7.11
-                'port' => 20685,
-                'user' => '3557',
-                'pass' => '3557',
-            ],
+            // [
+                // 'ip'   => '59.38.131.92', // 11-12
+                // 'port' => 11616,
+                // 'user' => '5579',
+                // 'pass' => '5579',
+            // ],
             
         ];
         
