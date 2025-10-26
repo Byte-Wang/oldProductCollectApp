@@ -15,8 +15,8 @@ use app\common\library\Excel;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps"];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps"];
 
     public function index()
     {
@@ -255,6 +255,123 @@ class Index extends Backend
             'desc' => "only support post"
         ]);
     }
+
+
+    public function addTemuGoodsRecord()
+    {
+        if (!$this->request->isPost()) {
+            $this->fail('仅支持 POST 请求');
+            return;
+        }
+
+        $request = $this->request;
+
+        // === 1. 接收参数 ===
+        $product_id        = $request->post('product_id', '', 'trim');
+        $price             = $request->post('price', 0.0, 'floatval');
+        $main_image_url    = $request->post('main_image_url', '', 'trim');
+        $detail_page_url   = $request->post('detail_page_url', '', 'trim');
+        $site              = $request->post('site', '', 'trim');
+        $title             = $request->post('title', '', 'trim');
+        $daily_sales       = $request->post('daily_sales', 0, 'intval');
+        $rating            = $request->post('rating', 0.0, 'floatval');
+        $created_by_user_id = $request->post('created_by_user_id', 0, 'intval');
+        $created_by_username = $request->post('created_by_username', '', 'trim');
+        $listing_time      = $request->post('listing_time', '');
+        $category          = $request->post('category', '', 'trim');
+        $total_sales       = $request->post('total_sales', 0, 'intval');
+        $status            = $request->post('status', 1, 'intval'); // 默认正常
+
+        // === 2. 必填字段校验 ===
+        if (empty($product_id)) {
+            $this->fail('product_id 不能为空');
+            return;
+        }
+        if (empty($site)) {
+            $this->fail('site 站点不能为空');
+            return;
+        }
+        if ($created_by_user_id <= 0) {
+            $this->fail('创建人用户ID无效');
+            return;
+        }
+
+        $tableName = 'ba_temu_goods';
+
+        // === 3. 查询是否已存在（基于 product_id + site）===
+        $existing = Db::name($tableName)
+            ->where('product_id', $product_id)
+            ->where('site', $site)
+            ->field('id, created_by_user_id, created_by_username, created_time, status')
+            ->find();
+
+        $action = 1; // 1: 新增，2: 更新
+
+        // === 4. 构建数据数组 ===
+        $data = [
+            'product_id'           => $product_id,
+            'price'                => round($price, 2),
+            'main_image_url'       => $main_image_url,
+            'detail_page_url'      => $detail_page_url,
+            'site'                 => $site,
+            'title'                => $title,
+            'daily_sales'          => $daily_sales,
+            'rating'               => round($rating, 2),
+            'category'             => $category,
+            'total_sales'          => $total_sales,
+            'status'               => $status,
+        ];
+
+        // 处理 listing_time
+        if (!empty($listing_time)) {
+            $data['listing_time'] = is_numeric($listing_time) 
+                ? date('Y-m-d H:i:s', $listing_time) 
+                : $listing_time;
+        }
+
+        // === 5. 判断插入 or 更新 ===
+        if ($existing) {
+            // 已存在：只更新，不修改创建人、创建时间等信息
+            $action = 2;
+
+            // 可选：如果状态是删除（0），可以考虑恢复而不是更新
+            // if ($existing['status'] == 0) {
+            //     $data['status'] = 1; // 恢复为正常
+            // }
+
+            $result = Db::name($tableName)
+                ->where('id', $existing['id'])
+                ->update($data);
+
+            if ($result === false) {
+                $this->fail('更新商品失败');
+                return;
+            }
+
+        } else {
+            // 不存在：插入新记录
+            $data['created_by_user_id']   = $created_by_user_id;
+            $data['created_by_username']  = $created_by_username;
+            $data['created_time']         = date('Y-m-d H:i:s');
+
+            $result = Db::name($tableName)->insert($data);
+            if (!$result) {
+                $this->fail('插入商品失败');
+                return;
+            }
+        }
+
+        // === 7. 返回成功响应 ===
+        $this->success('操作成功', [
+            'code' => 200,
+            'desc' => $action == 1 ? '商品已添加' : '商品已更新',
+            'action' => $action,
+            'product_id' => $product_id,
+            'site' => $site
+        ]);
+    }
+
+
 
     private function assembleQueryConditions()
     {
