@@ -15,8 +15,8 @@ use app\common\library\Excel;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps"];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps"];
 
     public function index()
     {
@@ -256,11 +256,34 @@ class Index extends Backend
         ]);
     }
 
+    public function getTemuGoodsRecord()
+    {
+        $page = $this->request->get('page');
+        $limit = $this->request->get('limit');
 
+        $result = Db::table('ba_temu_goods')
+            ->alias('a')
+            ->field('a.*')
+            ->order('a.id', 'desc')
+            ->paginate($limit, false, [
+                'page'  => $page
+            ]);
+        
+        $sql = Db::getLastSql();
+
+        $this->success('', [
+            'list' => $result->items(),
+            'total' => $result->total(),
+            'sql' => $sql,
+        ]);
+    }
     public function addTemuGoodsRecord()
     {
         if (!$this->request->isPost()) {
-            $this->fail('仅支持 POST 请求');
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '仅支持 POST 请求'
+            ]);
             return;
         }
 
@@ -284,22 +307,31 @@ class Index extends Backend
 
         // === 2. 必填字段校验 ===
         if (empty($product_id)) {
-            $this->fail('product_id 不能为空');
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => 'product_id 不能为空'
+            ]);
             return;
         }
         if (empty($site)) {
-            $this->fail('site 站点不能为空');
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => 'site 站点不能为空'
+            ]);
             return;
         }
         if ($created_by_user_id <= 0) {
-            $this->fail('创建人用户ID无效');
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '创建人用户ID无效'
+            ]);
             return;
         }
 
         $tableName = 'ba_temu_goods';
 
         // === 3. 查询是否已存在（基于 product_id + site）===
-        $existing = Db::name($tableName)
+        $existing = Db::table($tableName)
             ->where('product_id', $product_id)
             ->where('site', $site)
             ->field('id, created_by_user_id, created_by_username, created_time, status')
@@ -339,12 +371,15 @@ class Index extends Backend
             //     $data['status'] = 1; // 恢复为正常
             // }
 
-            $result = Db::name($tableName)
+            $result = Db::table($tableName)
                 ->where('id', $existing['id'])
                 ->update($data);
 
             if ($result === false) {
-                $this->fail('更新商品失败');
+                $this->success('操作失败', [
+                    'code' => 400,
+                    'desc' => '更新商品失败'
+                ]);
                 return;
             }
 
@@ -354,9 +389,12 @@ class Index extends Backend
             $data['created_by_username']  = $created_by_username;
             $data['created_time']         = date('Y-m-d H:i:s');
 
-            $result = Db::name($tableName)->insert($data);
+            $result = Db::table($tableName)->insert($data);
             if (!$result) {
-                $this->fail('插入商品失败');
+                $this->success('操作失败', [
+                    'code' => 400,
+                    'desc' => '插入商品失败'
+                ]);
                 return;
             }
         }
