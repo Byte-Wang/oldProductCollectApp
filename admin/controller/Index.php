@@ -15,8 +15,8 @@ use app\common\library\Excel;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps"];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps"];
 
     public function index()
     {
@@ -261,9 +261,53 @@ class Index extends Backend
         $page = $this->request->get('page');
         $limit = $this->request->get('limit');
 
-        $result = Db::table('ba_temu_goods')
+        // 前端自定义筛选参数
+        $createdTimeStart = $this->request->get('created_time_start', '');
+        $createdTimeEnd   = $this->request->get('created_time_end', '');
+        $dailySalesMin    = $this->request->get('daily_sales_min', '');
+        $dailySalesMax    = $this->request->get('daily_sales_max', '');
+        $ratingMin        = $this->request->get('rating_min', '');
+        $ratingMax        = $this->request->get('rating_max', '');
+        $createdByUserId  = $this->request->get('created_by_user_id', '');
+
+        $query = Db::table('ba_temu_goods')
             ->alias('a')
-            ->field('a.*')
+            ->field('a.*');
+
+        // 创建时间范围筛选
+        if (!empty($createdTimeStart) && !empty($createdTimeEnd)) {
+            $query = $query->where('a.created_time', 'between', [$createdTimeStart, $createdTimeEnd]);
+        } else {
+            if (!empty($createdTimeStart)) {
+                $query = $query->where('a.created_time', '>=', $createdTimeStart);
+            }
+            if (!empty($createdTimeEnd)) {
+                $query = $query->where('a.created_time', '<=', $createdTimeEnd);
+            }
+        }
+
+        // 日销量范围
+        if ($dailySalesMin !== '' && is_numeric($dailySalesMin)) {
+            $query = $query->where('a.daily_sales', '>=', intval($dailySalesMin));
+        }
+        if ($dailySalesMax !== '' && is_numeric($dailySalesMax)) {
+            $query = $query->where('a.daily_sales', '<=', intval($dailySalesMax));
+        }
+
+        // 评分范围
+        if ($ratingMin !== '' && is_numeric($ratingMin)) {
+            $query = $query->where('a.rating', '>=', floatval($ratingMin));
+        }
+        if ($ratingMax !== '' && is_numeric($ratingMax)) {
+            $query = $query->where('a.rating', '<=', floatval($ratingMax));
+        }
+
+        // 创建人筛选
+        if (!empty($createdByUserId) && is_numeric($createdByUserId)) {
+            $query = $query->where('a.created_by_user_id', intval($createdByUserId));
+        }
+
+        $result = $query
             ->order('a.id', 'desc')
             ->paginate($limit, false, [
                 'page'  => $page
@@ -276,6 +320,85 @@ class Index extends Backend
             'total' => $result->total(),
             'sql' => $sql,
         ]);
+    }
+
+    public function exportTemuGoodsRecord()
+    {
+
+        $page = $this->request->get('page');
+        $limit = $this->request->get('limit');
+
+        // 前端自定义筛选参数（与列表接口保持一致）
+        $createdTimeStart = $this->request->get('created_time_start', '');
+        $createdTimeEnd   = $this->request->get('created_time_end', '');
+        $dailySalesMin    = $this->request->get('daily_sales_min', '');
+        $dailySalesMax    = $this->request->get('daily_sales_max', '');
+        $ratingMin        = $this->request->get('rating_min', '');
+        $ratingMax        = $this->request->get('rating_max', '');
+        $createdByUserId  = $this->request->get('created_by_user_id', '');
+
+        $query = Db::table('ba_temu_goods')
+            ->alias('a')
+            ->field('a.*');
+
+        // 创建时间范围筛选
+        if (!empty($createdTimeStart) && !empty($createdTimeEnd)) {
+            $query = $query->where('a.created_time', 'between', [$createdTimeStart, $createdTimeEnd]);
+        } else {
+            if (!empty($createdTimeStart)) {
+                $query = $query->where('a.created_time', '>=', $createdTimeStart);
+            }
+            if (!empty($createdTimeEnd)) {
+                $query = $query->where('a.created_time', '<=', $createdTimeEnd);
+            }
+        }
+
+        // 日销量范围
+        if ($dailySalesMin !== '' && is_numeric($dailySalesMin)) {
+            $query = $query->where('a.daily_sales', '>=', intval($dailySalesMin));
+        }
+        if ($dailySalesMax !== '' && is_numeric($dailySalesMax)) {
+            $query = $query->where('a.daily_sales', '<=', intval($dailySalesMax));
+        }
+
+        // 评分范围
+        if ($ratingMin !== '' && is_numeric($ratingMin)) {
+            $query = $query->where('a.rating', '>=', floatval($ratingMin));
+        }
+        if ($ratingMax !== '' && is_numeric($ratingMax)) {
+            $query = $query->where('a.rating', '<=', floatval($ratingMax));
+        }
+
+        // 创建人筛选
+        if (!empty($createdByUserId) && is_numeric($createdByUserId)) {
+            $query = $query->where('a.created_by_user_id', intval($createdByUserId));
+        }
+
+        $result = $query
+            ->order('a.id', 'desc')
+            ->paginate($limit, false, [
+                'page'  =>  $page
+            ]);
+
+
+        // 导出字段映射
+        $exportExcel = [
+            'product_id' => '商品ID',
+            'site' => '站点',
+            'title' => '标题',
+            'price' => '价格',
+            'daily_sales' => '日销量',
+            'total_sales' => '总销量',
+            'rating' => '评分',
+            'category' => '类目',
+            'listing_time' => '上架时间',
+            'detail_page_url' => '详情页链接',
+            'main_image_url' => '主图链接',
+            'created_by_username' => '创建人',
+            'created_time' => '创建时间'
+        ];
+
+        Excel::export($exportExcel, true, $result->items(), 'Temu商品列表');
     }
     public function addTemuGoodsRecord()
     {
