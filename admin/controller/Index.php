@@ -743,6 +743,7 @@ class Index extends Backend
        $page = $this->request->get('page');
        $limit = $this->request->get('limit');
        $desc = $this->request->get('desc');
+       $permissionId = $this->request->get('permissionId');
        $team_area_id = $this->request->get('team_area_id');
        
        $admin = $this->auth->getAdmin();
@@ -764,6 +765,11 @@ class Index extends Backend
         $searchWhere = '';
         if ($desc && $desc != '') {
             $searchWhere = 'a.desc like "%'.$desc.'%"';
+        }
+
+        $permissionIdWhere = '';
+        if ($permissionId && $permissionId != '') {
+            $permissionIdWhere = 'a.permission_admin_ids like "%'.$permissionId.',%"';
         }
        
        $result = Db::table('ba_otp')
