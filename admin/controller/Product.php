@@ -631,6 +631,7 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
 //        $admin = Db::name('admin')->where('id=1')->find();
         $type = $this->request->get("type", 0);
         $whereRole = [];
+        $teamAreaRole = '';
         if ($type == 1) {
             //团队
             if (in_array(1, $admin->group_arr) || in_array(5, $admin->group_arr)) {
@@ -638,21 +639,31 @@ list($where, $alias, $limit, $order) = $this->queryBuilder();
                 //审核员 的 待审核 为 1
             } elseif (in_array(2, $admin->group_arr)) {
                 //审核员 只能查看分配的数据
-                $whereRole = ['allot_id' => $admin->id];
+                $whereRole = ['product.allot_id' => $admin->id];
             } elseif (in_array(3, $admin->group_arr)) {
-                $whereRole = ['submit_team' => $admin->team_id];
+                $whereRole = ['product.submit_team' => $admin->team_id];
             } else {
                 $this->error('权限不足');
             }
+
+            $currentTeamArea = $admin->belong_team_area_id;
+            if ($currentTeamArea && $currentTeamArea != 0) {
+                $teamAreaRole = 'ct.team_area_id = '.$currentTeamArea.' or ca.team_area_id = '.$currentTeamArea;
+            }
+
         } else {
-            $whereRole = ['submit_user' => $admin->id];
+            $whereRole = ['product.submit_user' => $admin->id];
         }
 
         $res = $this->model
             ->withJoin($this->withJoinTable, $this->withJoinType)
             ->alias($alias)
+            ->field('product.*')
+            ->leftJoin('ba_admin ca', 'submit_user = ca.id')
+            ->leftJoin('ba_team ct', 'ct.id = ca.team_id')
             ->where($where)
             ->where($whereRole)
+            ->where($teamAreaRole)
             ->order($order)
             ->select()->toArray();
         Excel::export($this->model->exportExcel, true, $res, '产品列表');
