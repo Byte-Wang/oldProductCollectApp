@@ -781,6 +781,7 @@ class Index extends Backend
            ->where($teamAreaRole)
            ->where($userPermissionRole)
            ->where($searchWhere)
+           ->where($permissionIdWhere)
            ->paginate($limit, false, [
                'page'  => $page
            ]);
