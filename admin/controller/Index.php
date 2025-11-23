@@ -204,34 +204,85 @@ class Index extends Backend
             } else {
                 $action = 2; //编辑操作
 
-                $data = [
-                    'favorite' => $favorite,
-                    'update_admin' => $userId,
-                    'update_time' => time(),
-                    'plug_version' => $plugVersion,
-                    'seller' => $seller,
-                    'seller_count' => $sellerCount,
-                    'shipping_method' => $shippingMethod,
-                    'rank' => $rank,
-                    'category' => $category,
-                    'rating' => $rating,
-                    'brand_name' => $brandName,
-                    'fba_fee' => $fbaFee,
-                    'weight' => $weight,
-                    'dimensions' => $dimensions,
-                    'profit_margin' => $profitMargin,
-                    'price' => $price,
-                    'listing_date' => $listingDate,
-                    'asin_type' => $asinType,
-                    'review_status' => $reviewStatus,
-                    'wipo_brand_registration_status' => $wipoBrandRegistrationStatus,
-                    'trademark_office_brand_registration_status' => $trademarkOfficeBrandRegistrationStatus,
-                    'product_name' => $productName,
-                    'picture_url' => $productImage,
-                    'station_id' => $stationId,
-                ];
-
-                Db::table($tableNmae)->where(['asin' => $asin])->update($data);
+                // 初始化data数组
+                $data = [];
+                
+                // 添加总是需要更新的字段
+                $data['update_admin'] = $userId;
+                $data['update_time'] = time();
+                
+                // 为每个字段添加校验逻辑，只添加不为0也不为空的值
+                if (!empty($favorite) && $favorite !== 0) {
+                    $data['favorite'] = $favorite;
+                }
+                if (!empty($plugVersion) && $plugVersion !== 0) {
+                    $data['plug_version'] = $plugVersion;
+                }
+                if (!empty($seller) && $seller !== 0) {
+                    $data['seller'] = $seller;
+                }
+                if (!empty($sellerCount) && $sellerCount !== 0) {
+                    $data['seller_count'] = $sellerCount;
+                }
+                if (!empty($shippingMethod) && $shippingMethod !== 0) {
+                    $data['shipping_method'] = $shippingMethod;
+                }
+                if (!empty($rank) && $rank !== 0) {
+                    $data['rank'] = $rank;
+                }
+                if (!empty($category) && $category !== 0) {
+                    $data['category'] = $category;
+                }
+                if (!empty($rating) && $rating !== 0) {
+                    $data['rating'] = $rating;
+                }
+                if (!empty($brandName) && $brandName !== 0) {
+                    $data['brand_name'] = $brandName;
+                }
+                if (!empty($fbaFee) && $fbaFee !== 0) {
+                    $data['fba_fee'] = $fbaFee;
+                }
+                if (!empty($weight) && $weight !== 0) {
+                    $data['weight'] = $weight;
+                }
+                if (!empty($dimensions) && $dimensions !== 0) {
+                    $data['dimensions'] = $dimensions;
+                }
+                if (!empty($profitMargin) && $profitMargin !== 0) {
+                    $data['profit_margin'] = $profitMargin;
+                }
+                if (!empty($price) && $price !== 0) {
+                    $data['price'] = $price;
+                }
+                if (!empty($listingDate) && $listingDate !== 0) {
+                    $data['listing_date'] = $listingDate;
+                }
+                if (!empty($asinType) && $asinType !== 0) {
+                    $data['asin_type'] = $asinType;
+                }
+                if (!empty($reviewStatus) && $reviewStatus !== 0) {
+                    $data['review_status'] = $reviewStatus;
+                }
+                if (!empty($wipoBrandRegistrationStatus) && $wipoBrandRegistrationStatus !== 0) {
+                    $data['wipo_brand_registration_status'] = $wipoBrandRegistrationStatus;
+                }
+                if (!empty($trademarkOfficeBrandRegistrationStatus) && $trademarkOfficeBrandRegistrationStatus !== 0) {
+                    $data['trademark_office_brand_registration_status'] = $trademarkOfficeBrandRegistrationStatus;
+                }
+                if (!empty($productName) && $productName !== 0) {
+                    $data['product_name'] = $productName;
+                }
+                if (!empty($productImage) && $productImage !== 0) {
+                    $data['picture_url'] = $productImage;
+                }
+                if (!empty($stationId) && $stationId !== 0) {
+                    $data['station_id'] = $stationId;
+                }
+                
+                // 只有当data数组不为空时才执行更新操作
+                if (!empty($data)) {
+                    Db::table($tableNmae)->where(['asin' => $asin])->update($data);
+                }
             }
 
             $historyData = [
