@@ -1116,17 +1116,17 @@ $sql = Db::getLastSql();
             }
 
             // 检查名称是否重复(排除自身)
-            $nameExists = Db::table($tableName)
-                ->where('id', '<>', $id)
-                ->where(['name' => $name])
-                ->find();
-            if ($nameExists) {
-                $this->success('', [
-                    'code' => 400,
-                    'desc' => "团队名称已存在"
-                ]);
-                return;
-            }
+            // $nameExists = Db::table($tableName)
+            //     ->where('id', '<>', $id)
+            //     ->where(['name' => $name])
+            //     ->find();
+            // if ($nameExists) {
+            //     $this->success('', [
+            //         'code' => 400,
+            //         'desc' => "团队名称已存在"
+            //     ]);
+            //     return;
+            // }
 
             $data = [
                 'name' => $name,
