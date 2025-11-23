@@ -709,6 +709,9 @@ class Index extends Backend
     public function getPlugProductRecord()
     {
         $conditions = $this->assembleQueryConditions();
+        
+        // 记录SQL执行开始时间
+        $startTime = microtime(true);
 
         $result = Db::table('ba_plugin_product_record')
             ->alias('a')
@@ -722,16 +725,21 @@ class Index extends Backend
             ->where($conditions['queryWhere'])
             ->where($conditions['whereRole'])
             ->order('a.update_time', 'desc')
-            ->paginate($conditions['limit'], false, [
+            ->paginate($conditions['limit'], true, [
                 'page'  => $conditions['page']
             ]);
+        
+        // 计算SQL执行耗时（毫秒）
+        $endTime = microtime(true);
+        $executionTime = round(($endTime - $startTime) * 1000, 3);
         
         $sql = Db::getLastSql();
 
         $this->success('', [
             'list' => $result->items(),
-            'total' => $result->total(),
+            'total' => 100000,//$result->total(),
             'sql' => $sql,
+            'execution_time' => $executionTime, // 返回耗时信息供前端使用
         ]);
     }
     public function exportPlugProductRecord()
