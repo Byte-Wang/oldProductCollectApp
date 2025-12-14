@@ -15,8 +15,8 @@ use app\common\library\Excel;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps"];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord","addPriceChangeRecord"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps","getPriceChangeRecord","exportPriceChangeRecord","getPriceChangeRecordById","addPriceChangeRecord"];
 
     public function index()
     {
@@ -450,6 +450,326 @@ class Index extends Backend
         ];
 
         Excel::export($exportExcel, true, $result->items(), 'Temu商品列表');
+    }
+    public function getPriceChangeRecord()
+    {
+        $page = $this->request->get('page');
+        $limit = $this->request->get('limit');
+
+        $createdTimeStart = $this->request->get('created_time_start', '');
+        $createdTimeEnd   = $this->request->get('created_time_end', '');
+        $type             = $this->request->get('type', '');
+        $status           = $this->request->get('status', '1');
+        $sku              = $this->request->get('sku', '');
+        $storeName        = $this->request->get('store_name', '');
+        $salesStatus      = $this->request->get('sales_status', '');
+        $operatorUserId   = $this->request->get('operator_user_id', '');
+        $originalPriceMin = $this->request->get('original_price_min', '');
+        $originalPriceMax = $this->request->get('original_price_max', '');
+        $newPriceMin      = $this->request->get('new_price_min', '');
+        $newPriceMax      = $this->request->get('new_price_max', '');
+        $totalCostMin     = $this->request->get('total_cost_min', '');
+        $totalCostMax     = $this->request->get('total_cost_max', '');
+        $stockMin         = $this->request->get('stock_min', '');
+        $stockMax         = $this->request->get('stock_max', '');
+
+        $query = Db::table('ba_price_change_record')
+            ->alias('a')
+            ->field('a.*');
+
+        if (!empty($createdTimeStart) && !empty($createdTimeEnd)) {
+            $query = $query->where('a.created_time', 'between', [$createdTimeStart, $createdTimeEnd]);
+        } else {
+            if (!empty($createdTimeStart)) {
+                $query = $query->where('a.created_time', '>=', $createdTimeStart);
+            }
+            if (!empty($createdTimeEnd)) {
+                $query = $query->where('a.created_time', '<=', $createdTimeEnd);
+            }
+        }
+
+        if ($type !== '' && is_numeric($type)) {
+            $query = $query->where('a.type', intval($type));
+        }
+        if ($status !== '' && is_numeric($status)) {
+            $query = $query->where('a.status', intval($status));
+        }
+        if (!empty($sku)) {
+            $query = $query->where('a.sku', $sku);
+        }
+        if (!empty($storeName)) {
+            $query = $query->where('a.store_name', $storeName);
+        }
+        if (!empty($salesStatus)) {
+            $query = $query->where('a.sales_status', $salesStatus);
+        }
+        if (!empty($operatorUserId) && is_numeric($operatorUserId)) {
+            $query = $query->where('a.operator_user_id', intval($operatorUserId));
+        }
+
+        if ($originalPriceMin !== '' && is_numeric($originalPriceMin)) {
+            $query = $query->where('a.original_price', '>=', floatval($originalPriceMin));
+        }
+        if ($originalPriceMax !== '' && is_numeric($originalPriceMax)) {
+            $query = $query->where('a.original_price', '<=', floatval($originalPriceMax));
+        }
+        if ($newPriceMin !== '' && is_numeric($newPriceMin)) {
+            $query = $query->where('a.new_price', '>=', floatval($newPriceMin));
+        }
+        if ($newPriceMax !== '' && is_numeric($newPriceMax)) {
+            $query = $query->where('a.new_price', '<=', floatval($newPriceMax));
+        }
+        if ($totalCostMin !== '' && is_numeric($totalCostMin)) {
+            $query = $query->where('a.total_cost', '>=', floatval($totalCostMin));
+        }
+        if ($totalCostMax !== '' && is_numeric($totalCostMax)) {
+            $query = $query->where('a.total_cost', '<=', floatval($totalCostMax));
+        }
+        if ($stockMin !== '' && is_numeric($stockMin)) {
+            $query = $query->where('a.stock', '>=', intval($stockMin));
+        }
+        if ($stockMax !== '' && is_numeric($stockMax)) {
+            $query = $query->where('a.stock', '<=', intval($stockMax));
+        }
+
+        $result = $query
+            ->order('a.id', 'desc')
+            ->paginate($limit, false, [
+                'page'  => $page
+            ]);
+
+        $sql = Db::getLastSql();
+
+        $this->success('', [
+            'list' => $result->items(),
+            'total' => $result->total(),
+            'sql' => $sql,
+        ]);
+    }
+
+    public function getPriceChangeRecordById()
+    {
+        $id = $this->request->get('id');
+        if (empty($id) || !is_numeric($id)) {
+            $this->success('', [
+                'code' => 400,
+                'desc' => 'id 无效'
+            ]);
+            return;
+        }
+
+        $record = Db::table('ba_price_change_record')
+            ->alias('a')
+            ->field('a.*')
+            ->where('a.id', intval($id))
+            ->find();
+
+        if (!$record) {
+            $this->success('', [
+                'code' => 404,
+                'desc' => '记录不存在'
+            ]);
+            return;
+        }
+
+        $this->success('', [
+            'code' => 200,
+            'data' => $record
+        ]);
+    }
+
+    public function exportPriceChangeRecord()
+    {
+        $page = $this->request->get('page');
+        $limit = $this->request->get('limit');
+
+        $createdTimeStart = $this->request->get('created_time_start', '');
+        $createdTimeEnd   = $this->request->get('created_time_end', '');
+        $type             = $this->request->get('type', '');
+        $status           = $this->request->get('status', '');
+        $sku              = $this->request->get('sku', '');
+        $storeName        = $this->request->get('store_name', '');
+        $salesStatus      = $this->request->get('sales_status', '');
+        $operatorUserId   = $this->request->get('operator_user_id', '');
+        $originalPriceMin = $this->request->get('original_price_min', '');
+        $originalPriceMax = $this->request->get('original_price_max', '');
+        $newPriceMin      = $this->request->get('new_price_min', '');
+        $newPriceMax      = $this->request->get('new_price_max', '');
+        $totalCostMin     = $this->request->get('total_cost_min', '');
+        $totalCostMax     = $this->request->get('total_cost_max', '');
+        $stockMin         = $this->request->get('stock_min', '');
+        $stockMax         = $this->request->get('stock_max', '');
+
+        $query = Db::table('ba_price_change_record')
+            ->alias('a')
+            ->field('a.*');
+
+        if (!empty($createdTimeStart) && !empty($createdTimeEnd)) {
+            $query = $query->where('a.created_time', 'between', [$createdTimeStart, $createdTimeEnd]);
+        } else {
+            if (!empty($createdTimeStart)) {
+                $query = $query->where('a.created_time', '>=', $createdTimeStart);
+            }
+            if (!empty($createdTimeEnd)) {
+                $query = $query->where('a.created_time', '<=', $createdTimeEnd);
+            }
+        }
+
+        if ($type !== '' && is_numeric($type)) {
+            $query = $query->where('a.type', intval($type));
+        }
+        if ($status !== '' && is_numeric($status)) {
+            $query = $query->where('a.status', intval($status));
+        }
+        if (!empty($sku)) {
+            $query = $query->where('a.sku', $sku);
+        }
+        if (!empty($storeName)) {
+            $query = $query->where('a.store_name', $storeName);
+        }
+        if (!empty($salesStatus)) {
+            $query = $query->where('a.sales_status', $salesStatus);
+        }
+        if (!empty($operatorUserId) && is_numeric($operatorUserId)) {
+            $query = $query->where('a.operator_user_id', intval($operatorUserId));
+        }
+
+        if ($originalPriceMin !== '' && is_numeric($originalPriceMin)) {
+            $query = $query->where('a.original_price', '>=', floatval($originalPriceMin));
+        }
+        if ($originalPriceMax !== '' && is_numeric($originalPriceMax)) {
+            $query = $query->where('a.original_price', '<=', floatval($originalPriceMax));
+        }
+        if ($newPriceMin !== '' && is_numeric($newPriceMin)) {
+            $query = $query->where('a.new_price', '>=', floatval($newPriceMin));
+        }
+        if ($newPriceMax !== '' && is_numeric($newPriceMax)) {
+            $query = $query->where('a.new_price', '<=', floatval($newPriceMax));
+        }
+        if ($totalCostMin !== '' && is_numeric($totalCostMin)) {
+            $query = $query->where('a.total_cost', '>=', floatval($totalCostMin));
+        }
+        if ($totalCostMax !== '' && is_numeric($totalCostMax)) {
+            $query = $query->where('a.total_cost', '<=', floatval($totalCostMax));
+        }
+        if ($stockMin !== '' && is_numeric($stockMin)) {
+            $query = $query->where('a.stock', '>=', intval($stockMin));
+        }
+        if ($stockMax !== '' && is_numeric($stockMax)) {
+            $query = $query->where('a.stock', '<=', intval($stockMax));
+        }
+
+        $result = $query
+            ->order('a.id', 'desc')
+            ->paginate($limit, false, [
+                'page'  =>  $page
+            ]);
+
+        $exportExcel = [
+            'sku' => 'SKU',
+            'product_title' => '产品标题',
+            'original_price' => '原价',
+            'new_price' => '新价格',
+            'total_cost' => '总费用',
+            'type' => '类型',
+            'sales_status' => '销售状态',
+            'status' => '状态',
+            'stock' => '库存',
+            'store_name' => '店铺名称',
+            'operator_user_id' => '改价人用户ID',
+            'operator_username' => '改价人用户名',
+            'created_time' => '创建时间'
+        ];
+
+        Excel::export($exportExcel, true, $result->items(), '改价记录');
+    }
+
+    public function addPriceChangeRecord()
+    {
+        if (!$this->request->isPost()) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '仅支持 POST 请求'
+            ]);
+            return;
+        }
+
+        $request = $this->request;
+
+        $sku                = $request->post('sku', '', 'trim');
+        $product_title      = $request->post('product_title', '', 'trim');
+        $original_price     = $request->post('original_price', 0.0, 'floatval');
+        $new_price          = $request->post('new_price', 0.0, 'floatval');
+        $total_cost         = $request->post('total_cost', 0.0, 'floatval');
+        $type               = $request->post('type', 1, 'intval');
+        $status             = $request->post('status', 1, 'intval');
+        $stock              = $request->post('stock', 0, 'intval');
+        $sales_status       = $request->post('sales_status', '', 'trim');
+        $store_name         = $request->post('store_name', '', 'trim');
+        $operator_user_id   = $request->post('operator_user_id', 0, 'intval');
+        $operator_username  = $request->post('operator_username', '', 'trim');
+
+        if (empty($sku)) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => 'SKU 不能为空'
+            ]);
+            return;
+        }
+        if (empty($store_name)) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '店铺名称不能为空'
+            ]);
+            return;
+        }
+        if ($operator_user_id <= 0) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '改价人用户ID无效'
+            ]);
+            return;
+        }
+
+        if (!in_array($type, [1, 2])) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => 'type 无效'
+            ]);
+            return;
+        }
+
+        $data = [
+            'sku' => $sku,
+            'product_title' => $product_title,
+            'original_price' => round($original_price, 2),
+            'new_price' => round($new_price, 2),
+            'total_cost' => round($total_cost, 2),
+            'type' => $type,
+            'status' => $status,
+            'stock' => $stock,
+            'sales_status' => $sales_status,
+            'store_name' => $store_name,
+            'operator_user_id' => $operator_user_id,
+            'operator_username' => $operator_username,
+            'created_time' => date('Y-m-d H:i:s'),
+        ];
+
+        $result = Db::table('ba_price_change_record')->insert($data);
+        if (!$result) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '插入改价记录失败'
+            ]);
+            return;
+        }
+
+        $this->success('操作成功', [
+            'code' => 200,
+            'desc' => '改价记录已添加',
+            'sku' => $sku,
+            'store_name' => $store_name
+        ]);
     }
     public function addTemuGoodsRecord()
     {
