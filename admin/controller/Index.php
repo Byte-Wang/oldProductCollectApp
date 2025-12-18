@@ -464,6 +464,10 @@ class Index extends Backend
         $storeName        = $this->request->get('store_name', '');
         $salesStatus      = $this->request->get('sales_status', '');
         $operatorUserId   = $this->request->get('operator_user_id', '');
+        $asin             = $this->request->get('asin', '');
+        $regionName       = $this->request->get('region_name', '');
+        $asin             = $this->request->get('asin', '');
+        $regionName       = $this->request->get('region_name', '');
         $originalPriceMin = $this->request->get('original_price_min', '');
         $originalPriceMax = $this->request->get('original_price_max', '');
         $newPriceMin      = $this->request->get('new_price_min', '');
@@ -502,6 +506,12 @@ class Index extends Backend
         }
         if (!empty($salesStatus)) {
             $query = $query->where('a.sales_status', $salesStatus);
+        }
+        if (!empty($asin)) {
+            $query = $query->where('a.asin', $asin);
+        }
+        if (!empty($regionName)) {
+            $query = $query->where('a.region_name', $regionName);
         }
         if (!empty($operatorUserId) && is_numeric($operatorUserId)) {
             $query = $query->where('a.operator_user_id', intval($operatorUserId));
@@ -630,6 +640,12 @@ class Index extends Backend
         if (!empty($salesStatus)) {
             $query = $query->where('a.sales_status', $salesStatus);
         }
+        if (!empty($asin)) {
+            $query = $query->where('a.asin', $asin);
+        }
+        if (!empty($regionName)) {
+            $query = $query->where('a.region_name', $regionName);
+        }
         if (!empty($operatorUserId) && is_numeric($operatorUserId)) {
             $query = $query->where('a.operator_user_id', intval($operatorUserId));
         }
@@ -673,6 +689,8 @@ class Index extends Backend
             'total_cost' => '总费用',
             'type' => '类型',
             'sales_status' => '销售状态',
+            'asin' => 'ASIN',
+            'region_name' => '区域名称',
             'status' => '状态',
             'stock' => '库存',
             'store_name' => '店铺名称',
@@ -705,6 +723,8 @@ class Index extends Backend
         $status             = $request->post('status', 1, 'intval');
         $stock              = $request->post('stock', 0, 'intval');
         $sales_status       = $request->post('sales_status', '', 'trim');
+        $asin               = $request->post('asin', '', 'trim');
+        $region_name        = $request->post('region_name', '', 'trim');
         $store_name         = $request->post('store_name', '', 'trim');
         $operator_user_id   = $request->post('operator_user_id', 0, 'intval');
         $operator_username  = $request->post('operator_username', '', 'trim');
