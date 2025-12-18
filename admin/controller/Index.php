@@ -601,6 +601,8 @@ class Index extends Backend
         $type             = $this->request->get('type', '');
         $status           = $this->request->get('status', '');
         $sku              = $this->request->get('sku', '');
+        $asin             = $this->request->get('asin', '');
+        $regionName       = $this->request->get('region_name', '');
         $storeName        = $this->request->get('store_name', '');
         $salesStatus      = $this->request->get('sales_status', '');
         $operatorUserId   = $this->request->get('operator_user_id', '');
@@ -776,6 +778,8 @@ class Index extends Backend
             'operator_user_id' => $operator_user_id,
             'operator_username' => $operator_username,
             'created_time' => date('Y-m-d H:i:s'),
+            'asin' => $asin,
+            'region_name' => $region_name,
         ];
 
         $result = Db::table('ba_price_change_record')->insert($data);
