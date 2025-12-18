@@ -466,8 +466,7 @@ class Index extends Backend
         $operatorUserId   = $this->request->get('operator_user_id', '');
         $asin             = $this->request->get('asin', '');
         $regionName       = $this->request->get('region_name', '');
-        $asin             = $this->request->get('asin', '');
-        $regionName       = $this->request->get('region_name', '');
+        $groupBySku       = $this->request->get('group_by_sku', '');
         $originalPriceMin = $this->request->get('original_price_min', '');
         $originalPriceMax = $this->request->get('original_price_max', '');
         $newPriceMin      = $this->request->get('new_price_min', '');
@@ -540,6 +539,10 @@ class Index extends Backend
         }
         if ($stockMax !== '' && is_numeric($stockMax)) {
             $query = $query->where('a.stock', '<=', intval($stockMax));
+        }
+
+        if (!empty($groupBySku)) {
+            $query = $query->group('a.sku');
         }
 
         $result = $query
