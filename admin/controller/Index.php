@@ -467,6 +467,8 @@ class Index extends Backend
         $asin             = $this->request->get('asin', '');
         $regionName       = $this->request->get('region_name', '');
         $groupBySku       = $this->request->get('group_by_sku', '');
+        $minCount         = $this->request->get('minCount', '');
+        $maxCount         = $this->request->get('maxCount', '');
         $originalPriceMin = $this->request->get('original_price_min', '');
         $originalPriceMax = $this->request->get('original_price_max', '');
         $newPriceMin      = $this->request->get('new_price_min', '');
@@ -542,7 +544,13 @@ class Index extends Backend
         }
 
         if (!empty($groupBySku)) {
-            $query = $query->group('a.sku');
+            $query = $query->group('a.sku')->field('a.*, count(a.id) as count');
+            if ($minCount !== '' && is_numeric($minCount)) {
+                $query = $query->having('count', '>=', intval($minCount));
+            }
+            if ($maxCount !== '' && is_numeric($maxCount)) {
+                $query = $query->having('count', '<=', intval($maxCount));
+            }
         }
 
         $result = $query
