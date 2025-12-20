@@ -544,14 +544,17 @@ class Index extends Backend
         }
 
         if (!empty($groupBySku)) {
-            $query = $query->group('a.sku')->field('a.*, count(a.id) as count');
+            $query = $query->group('a.sku')->field('count(distinct a.stock) as count');
             if ($minCount !== '' && is_numeric($minCount)) {
-                $query = $query->having('count', '>=', intval($minCount));
+                $query = $query->having('count(distinct a.stock) >= ' . intval($minCount));
             }
             if ($maxCount !== '' && is_numeric($maxCount)) {
-                $query = $query->having('count', '<=', intval($maxCount));
+                $query = $query->having('count(distinct a.stock) <= ' . intval($maxCount));
             }
+        } else if ($type !== '' && is_numeric($type) && !empty($sku)) {
+            $query = $query->group('a.stock');
         }
+
 
         $result = $query
             ->order('a.id', 'desc')
