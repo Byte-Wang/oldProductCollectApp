@@ -483,7 +483,8 @@ class Index extends Backend
 
         $query = Db::table('ba_price_change_record')
             ->alias('a')
-            ->field('a.*');
+            ->leftJoin('ba_otp o', 'o.store_name = a.store_name')
+            ->field('o.desc as store_number,o.acount as store_acount,a.*');
 
         if (!empty($createdTimeStart) && !empty($createdTimeEnd)) {
             $query = $query->where('a.created_time', 'between', [$createdTimeStart, $createdTimeEnd]);
@@ -1304,16 +1305,6 @@ class Index extends Backend
            $tableName = 'ba_otp';
 
            $id = $request->post('id', 0);
-           $desc = $request->post('desc', '');
-           $uri = $request->post('uri', '');
-           $secret = $request->post('secret', '');
-           $acount = $request->post('acount', '');
-           $type = $request->post('type', '');
-           $issuer = $request->post('issuer', '');
-           $status = $request->post('status', 1);
-           $permission_admin_ids = $request->post('permission_admin_ids', '');
-           $teamAreaId = $request->post('team_area_id', '');
-           $store_name = $request->post('store_name', '');
            
            // 检查必填字段
            if (empty($id)) {
@@ -1334,21 +1325,27 @@ class Index extends Backend
                return;
            }
 
-           $data = [
-               'desc' => $desc,
-               'uri' => $uri,
-               'secret' => $secret,
-               'acount' => $acount,
-               'type' => $type,
-               'issuer' => $issuer,
-               'status' => $status,
-               'team_area_id' => $teamAreaId,
-               'store_name' => $store_name
+           $params = $request->post();
+           $allowedFields = [
+               'desc', 'uri', 'secret', 'acount', 'type',
+               'issuer', 'status', 'permission_admin_ids',
+               'team_area_id', 'store_name'
            ];
-           
-            if (strlen($permission_admin_ids) > 0) {
-               $data = ['permission_admin_ids' => $permission_admin_ids];
-            }
+
+           $data = [];
+           foreach ($allowedFields as $field) {
+               if (isset($params[$field])) {
+                   $data[$field] = $params[$field];
+               }
+           }
+
+           if (empty($data)) {
+               $this->success('', [
+                   'code' => 200,
+                   'desc' => "没有变更内容"
+               ]);
+               return;
+           }
 
            $result = Db::table($tableName)
                ->where(['id' => $id])
