@@ -483,8 +483,7 @@ class Index extends Backend
 
         $query = Db::table('ba_price_change_record')
             ->alias('a')
-            ->leftJoin('ba_otp o', 'o.store_name = a.store_name')
-            ->field('o.desc as store_number,o.acount as store_acount,a.*');
+            ->field('(select o.desc from ba_otp as o where store_name=a.store_name) as store_number,(select 02.acount from ba_otp as o2 where store_name=a.store_name) as store_acount,a.*');
 
         if (!empty($createdTimeStart) && !empty($createdTimeEnd)) {
             $query = $query->where('a.created_time', 'between', [$createdTimeStart, $createdTimeEnd]);
