@@ -462,6 +462,7 @@ class Index extends Backend
         $status           = $this->request->get('status', '1');
         $sku              = $this->request->get('sku', '');
         $storeName        = $this->request->get('store_name', '');
+        $group_by_store_name       = $this->request->get('group_by_store_name', '');
         $salesStatus      = $this->request->get('sales_status', '');
         $operatorUserId   = $this->request->get('operator_user_id', '');
         $asin             = $this->request->get('asin', '');
@@ -477,6 +478,8 @@ class Index extends Backend
         $totalCostMax     = $this->request->get('total_cost_max', '');
         $stockMin         = $this->request->get('stock_min', '');
         $stockMax         = $this->request->get('stock_max', '');
+        $orderByCount         = $this->request->get('order_by_count', '');
+        $orderByTime         = $this->request->get('order_by_time', '');
 
         $query = Db::table('ba_price_change_record')
             ->alias('a')
@@ -544,20 +547,34 @@ class Index extends Backend
         }
 
         if (!empty($groupBySku)) {
-            $query = $query->group('a.sku')->field('count(distinct a.stock) as count');
+            $countField = 'count(a.id)';
+            if ($type == 2) {
+                $countField = 'count(distinct a.stock)';
+            }
+            $query = $query->group('a.sku')->field($countField . ' as count');
             if ($minCount !== '' && is_numeric($minCount)) {
-                $query = $query->having('count(distinct a.stock) >= ' . intval($minCount));
+                $query = $query->having($countField . ' >= ' . intval($minCount));
             }
             if ($maxCount !== '' && is_numeric($maxCount)) {
-                $query = $query->having('count(distinct a.stock) <= ' . intval($maxCount));
+                $query = $query->having($countField . ' <= ' . intval($maxCount));
             }
-        } else if ($type !== '' && is_numeric($type) && !empty($sku)) {
-            $query = $query->group('a.stock');
+        } else if ($type !== '' && is_numeric($type) && !empty($sku) && $type == 2) {
+            $query = $query->group('a.stock')->field('count(a.id) as count');
+        }else if (!empty($group_by_store_name)) {
+            $query = $query->group('a.store_name')->field('count(distinct a.sku) as count');
         }
 
+        $order = [];
+        if (!empty($orderByCount)) {
+            $order['count'] = strtolower($orderByCount) == 'desc' ? 'desc' : 'asc';
+        } elseif (!empty($orderByTime)) {
+            $order['a.created_time'] = strtolower($orderByTime) == 'desc' ? 'desc' : 'asc';
+        } else {
+            $order['a.id'] = 'desc';
+        }
 
         $result = $query
-            ->order('a.id', 'desc')
+            ->order($order)
             ->paginate($limit, false, [
                 'page'  => $page
             ]);
