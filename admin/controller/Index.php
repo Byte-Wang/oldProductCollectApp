@@ -1179,6 +1179,8 @@ class Index extends Backend
        $desc = $this->request->get('desc');
        $permissionId = $this->request->get('permissionId');
        $team_area_id = $this->request->get('team_area_id');
+       $store_name = $this->request->get('store_name');
+
        
        $admin = $this->auth->getAdmin();
        $currentTeamArea = $admin->belong_team_area_id;
@@ -1200,6 +1202,10 @@ class Index extends Backend
         if ($desc && $desc != '') {
             $searchWhere = 'a.desc like "%'.$desc.'%"';
         }
+        $store_nameWhere = '';
+        if ($store_name && $store_name != '') {
+            $store_nameWhere = 'a.store_name like "%'.$store_name.'%"';
+        }
 
         $permissionIdWhere = '';
         if ($permissionId && $permissionId != '') {
@@ -1208,7 +1214,7 @@ class Index extends Backend
        
        $result = Db::table('ba_otp')
            ->alias('a')
-           ->field('a.id,a.desc,a.uri,a.secret,a.acount,a.type,a.issuer,a.create_time,a.permission_admin_ids,ta.name as teamAreaName,a.team_area_id,(select GROUP_CONCAT(CONCAT("[", id, "]", username) SEPARATOR "、") AS names_list from ba_admin where FIND_IN_SET(id, a.permission_admin_ids)) as userList')
+           ->field('a.id,a.store_name,a.desc,a.uri,a.secret,a.acount,a.type,a.issuer,a.create_time,a.permission_admin_ids,ta.name as teamAreaName,a.team_area_id,(select GROUP_CONCAT(CONCAT("[", id, "]", username) SEPARATOR "、") AS names_list from ba_admin where FIND_IN_SET(id, a.permission_admin_ids)) as userList')
            ->leftJoin('ba_team_area ta', 'ta.id = a.team_area_id')
            ->order('a.create_time')
            ->where('a.status', 1)
@@ -1216,10 +1222,11 @@ class Index extends Backend
            ->where($userPermissionRole)
            ->where($searchWhere)
            ->where($permissionIdWhere)
+           ->where($store_nameWhere)
            ->paginate($limit, false, [
                'page'  => $page
            ]);
-$sql = Db::getLastSql();
+        $sql = Db::getLastSql();
        $this->success('', [
            'list' => $result->items(),
            'total' => $result->total(),
@@ -1241,6 +1248,7 @@ $sql = Db::getLastSql();
            $type = $request->post('type', '');
            $issuer = $request->post('issuer', '');
            $teamAreaId = $request->post('team_area_id', '');
+           $store_name = $request->post('store_name', '');
            
          
            
@@ -1264,6 +1272,7 @@ $sql = Db::getLastSql();
                'team_area_id' => $teamAreaId,
                'permission_admin_ids' => '',
                'status' => 1,
+               'store_name' => $store_name
            ];
 
            $result = Db::table($tableName)->insert($data);
@@ -1304,6 +1313,7 @@ $sql = Db::getLastSql();
            $status = $request->post('status', 1);
            $permission_admin_ids = $request->post('permission_admin_ids', '');
            $teamAreaId = $request->post('team_area_id', '');
+           $store_name = $request->post('store_name', '');
            
            // 检查必填字段
            if (empty($id)) {
@@ -1333,6 +1343,7 @@ $sql = Db::getLastSql();
                'issuer' => $issuer,
                'status' => $status,
                'team_area_id' => $teamAreaId,
+               'store_name' => $store_name
            ];
            
             if (strlen($permission_admin_ids) > 0) {
