@@ -506,7 +506,7 @@ class Index extends Backend
             $query = $query->where('a.sku', $sku);
         }
         if (!empty($storeName)) {
-            $query = $query->where('a.store_name', $storeName);
+            $query = $query->where('a.store_name','like', '%'.$storeName.'%');
         }
         if (!empty($salesStatus)) {
             $query = $query->where('a.sales_status', $salesStatus);
