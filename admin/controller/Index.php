@@ -809,6 +809,8 @@ class Index extends Backend
         $amountMin        = $this->request->get('amount_min', '');
         $amountMax        = $this->request->get('amount_max', '');
 
+        $groupByStoreName        = $this->request->get('group_by_store_name', '');
+
         $query = Db::table('ba_withdraw_record')
             ->alias('a')
             ->field('a.*');
@@ -841,6 +843,10 @@ class Index extends Backend
         }
         if ($amountMax !== '' && is_numeric($amountMax)) {
             $query = $query->where('a.amount', '<=', floatval($amountMax));
+        }
+
+        if (!empty($groupByStoreName)) {
+            $query = $query->group('a.store_name')->field('count(a.id) as count');
         }
 
         $result = $query
