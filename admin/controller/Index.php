@@ -16,7 +16,7 @@ use app\common\library\Excel;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord","addPriceChangeRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps","getPriceChangeRecord","exportPriceChangeRecord","getPriceChangeRecordById","addPriceChangeRecord"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps","getPriceChangeRecord","exportPriceChangeRecord","addPriceChangeRecord","getWithdrawRecord","exportWithdrawRecord","addWithdrawRecord"];
 
     public function index()
     {
@@ -588,37 +588,6 @@ class Index extends Backend
         ]);
     }
 
-    public function getPriceChangeRecordById()
-    {
-        $id = $this->request->get('id');
-        if (empty($id) || !is_numeric($id)) {
-            $this->success('', [
-                'code' => 400,
-                'desc' => 'id 无效'
-            ]);
-            return;
-        }
-
-        $record = Db::table('ba_price_change_record')
-            ->alias('a')
-            ->field('a.*')
-            ->where('a.id', intval($id))
-            ->find();
-
-        if (!$record) {
-            $this->success('', [
-                'code' => 404,
-                'desc' => '记录不存在'
-            ]);
-            return;
-        }
-
-        $this->success('', [
-            'code' => 200,
-            'data' => $record
-        ]);
-    }
-
     public function exportPriceChangeRecord()
     {
         $page = $this->request->get('page');
@@ -826,6 +795,207 @@ class Index extends Backend
             'store_name' => $store_name
         ]);
     }
+    public function getWithdrawRecord()
+    {
+        $page = $this->request->get('page');
+        $limit = $this->request->get('limit');
+
+        $createdTimeStart = $this->request->get('created_time_start', '');
+        $createdTimeEnd   = $this->request->get('created_time_end', '');
+        $storeName        = $this->request->get('store_name', '');
+        $siteName         = $this->request->get('site_name', '');
+        $operatorUserId   = $this->request->get('operator_user_id', '');
+        $operatorUsername = $this->request->get('operator_username', '');
+        $amountMin        = $this->request->get('amount_min', '');
+        $amountMax        = $this->request->get('amount_max', '');
+
+        $query = Db::table('ba_withdraw_record')
+            ->alias('a')
+            ->field('a.*');
+
+        if (!empty($createdTimeStart) && !empty($createdTimeEnd)) {
+            $query = $query->where('a.created_time', 'between', [$createdTimeStart, $createdTimeEnd]);
+        } else {
+            if (!empty($createdTimeStart)) {
+                $query = $query->where('a.created_time', '>=', $createdTimeStart);
+            }
+            if (!empty($createdTimeEnd)) {
+                $query = $query->where('a.created_time', '<=', $createdTimeEnd);
+            }
+        }
+
+        if (!empty($storeName)) {
+            $query = $query->where('a.store_name', 'like', '%' . $storeName . '%');
+        }
+        if (!empty($siteName)) {
+            $query = $query->where('a.site_name', $siteName);
+        }
+        if (!empty($operatorUserId) && is_numeric($operatorUserId)) {
+            $query = $query->where('a.operator_user_id', intval($operatorUserId));
+        }
+        if (!empty($operatorUsername)) {
+            $query = $query->where('a.operator_username', 'like', '%' . $operatorUsername . '%');
+        }
+        if ($amountMin !== '' && is_numeric($amountMin)) {
+            $query = $query->where('a.amount', '>=', floatval($amountMin));
+        }
+        if ($amountMax !== '' && is_numeric($amountMax)) {
+            $query = $query->where('a.amount', '<=', floatval($amountMax));
+        }
+
+        $result = $query
+            ->order('a.id', 'desc')
+            ->paginate($limit, false, [
+                'page'  => $page
+            ]);
+
+        $this->success('', [
+            'list' => $result->items(),
+            'total' => $result->total()
+        ]);
+    }
+
+    public function exportWithdrawRecord()
+    {
+        $createdTimeStart = $this->request->get('created_time_start', '');
+        $createdTimeEnd   = $this->request->get('created_time_end', '');
+        $storeName        = $this->request->get('store_name', '');
+        $siteName         = $this->request->get('site_name', '');
+        $operatorUserId   = $this->request->get('operator_user_id', '');
+        $operatorUsername = $this->request->get('operator_username', '');
+        $amountMin        = $this->request->get('amount_min', '');
+        $amountMax        = $this->request->get('amount_max', '');
+
+        $query = Db::table('ba_withdraw_record')
+            ->alias('a')
+            ->field('a.*');
+
+        if (!empty($createdTimeStart) && !empty($createdTimeEnd)) {
+            $query = $query->where('a.created_time', 'between', [$createdTimeStart, $createdTimeEnd]);
+        } else {
+            if (!empty($createdTimeStart)) {
+                $query = $query->where('a.created_time', '>=', $createdTimeStart);
+            }
+            if (!empty($createdTimeEnd)) {
+                $query = $query->where('a.created_time', '<=', $createdTimeEnd);
+            }
+        }
+
+        if (!empty($storeName)) {
+            $query = $query->where('a.store_name', 'like', '%' . $storeName . '%');
+        }
+        if (!empty($siteName)) {
+            $query = $query->where('a.site_name', $siteName);
+        }
+        if (!empty($operatorUserId) && is_numeric($operatorUserId)) {
+            $query = $query->where('a.operator_user_id', intval($operatorUserId));
+        }
+        if (!empty($operatorUsername)) {
+            $query = $query->where('a.operator_username', 'like', '%' . $operatorUsername . '%');
+        }
+        if ($amountMin !== '' && is_numeric($amountMin)) {
+            $query = $query->where('a.amount', '>=', floatval($amountMin));
+        }
+        if ($amountMax !== '' && is_numeric($amountMax)) {
+            $query = $query->where('a.amount', '<=', floatval($amountMax));
+        }
+
+        $list = $query->order('a.id', 'desc')->select();
+
+        $exportExcel = [
+            'id' => 'ID',
+            'store_name' => '店铺名称',
+            'site_name' => '站点名称',
+            'amount' => '提现金额',
+            'currency' => '提现币种',
+            'operator_user_id' => '提交人ID',
+            'operator_username' => '提交人名称',
+            'created_time' => '创建时间'
+        ];
+
+        Excel::export($exportExcel, true, $list, '提现记录');
+    }
+
+    public function addWithdrawRecord()
+    {
+        if (!$this->request->isPost()) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '仅支持 POST 请求'
+            ]);
+            return;
+        }
+
+        $request = $this->request;
+
+        $store_name = $request->post('store_name', '', 'trim');
+        $site_name  = $request->post('site_name', '', 'trim');
+        $amount     = $request->post('amount', 0.0, 'floatval');
+        $currency   = $request->post('currency', '', 'trim');
+        $operator_user_id = $request->post('operator_user_id', 0, 'intval');
+        $operator_username = $request->post('operator_username', '', 'trim');
+
+        if (empty($store_name)) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '店铺名称不能为空'
+            ]);
+            return;
+        }
+        if (empty($site_name)) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '站点名称不能为空'
+            ]);
+            return;
+        }
+        if ($amount <= 0) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '提现金额必须大于0'
+            ]);
+            return;
+        }
+        if (empty($currency)) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '提现币种不能为空'
+            ]);
+            return;
+        }
+        if ($operator_user_id <= 0) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '提交人ID无效'
+            ]);
+            return;
+        }
+
+        $data = [
+            'store_name' => $store_name,
+            'site_name'  => $site_name,
+            'amount'     => round($amount, 2),
+            'currency'   => $currency,
+            'operator_user_id'   => $operator_user_id,
+            'operator_username'  => $operator_username,
+            'created_time' => date('Y-m-d H:i:s'),
+        ];
+
+        $result = Db::table('ba_withdraw_record')->insert($data);
+        if (!$result) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '插入提现记录失败'
+            ]);
+            return;
+        }
+
+        $this->success('操作成功', [
+            'code' => 200,
+            'desc' => '提现记录已添加'
+        ]);
+    }
+
     public function addTemuGoodsRecord()
     {
         if (!$this->request->isPost()) {
