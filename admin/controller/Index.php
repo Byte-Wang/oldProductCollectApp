@@ -15,7 +15,7 @@ use app\common\library\Excel;
 
 class Index extends Backend
 {
-    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord","addPriceChangeRecord"];
+    protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord","addPriceChangeRecord","addWithdrawRecord"];
     protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps","getPriceChangeRecord","exportPriceChangeRecord","addPriceChangeRecord","getWithdrawRecord","exportWithdrawRecord","addWithdrawRecord"];
 
     public function index()
