@@ -16,7 +16,7 @@ use app\common\library\Excel;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord","addPriceChangeRecord","addWithdrawRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps","getPriceChangeRecord","exportPriceChangeRecord","getPriceChangeRecordById","addPriceChangeRecord","getWithdrawRecord","exportWithdrawRecord","addWithdrawRecord"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps","getPriceChangeRecord","exportPriceChangeRecord","getPriceChangeRecordById","addPriceChangeRecord","getWithdrawRecord","exportWithdrawRecord","addWithdrawRecord","getBrandBlacklist","addBrandBlacklist","deleteBrandBlacklist"];
 
     public function index()
     {
@@ -2632,5 +2632,176 @@ class Index extends Backend
     {
         $config = (new \app\admin\model\Config)->where(['name' => 'notice_list'])->value('value');
         $this->success('', ['notice' => $config ?? '']);
+    }
+
+    /**
+     * 获取品牌黑名单列表
+     */
+    public function getBrandBlacklist()
+    {
+        $page = $this->request->get('page', 1);
+        $limit = $this->request->get('limit', 10);
+
+        $brandName = $this->request->get('brand_name', '');
+        $site = $this->request->get('site', '');
+        $creatorId = $this->request->get('creator_id', '');
+        $createTimeStart = $this->request->get('create_time_start', '');
+        $createTimeEnd = $this->request->get('create_time_end', '');
+
+        $query = Db::table('ba_brand_blacklist')
+            ->alias('a')
+            ->field('a.*');
+
+        if (!empty($brandName)) {
+            $query = $query->where('a.brand_name', 'like', '%' . $brandName . '%');
+        }
+        if (!empty($site)) {
+            $query = $query->where('a.site', $site);
+        }
+        if (!empty($creatorId) && is_numeric($creatorId)) {
+            $query = $query->where('a.creator_id', intval($creatorId));
+        }
+        if (!empty($createTimeStart) && !empty($createTimeEnd)) {
+            $query = $query->where('a.create_time', 'between', [$createTimeStart, $createTimeEnd]);
+        } else {
+            if (!empty($createTimeStart)) {
+                $query = $query->where('a.create_time', '>=', $createTimeStart);
+            }
+            if (!empty($createTimeEnd)) {
+                $query = $query->where('a.create_time', '<=', $createTimeEnd);
+            }
+        }
+
+        $result = $query
+            ->order('a.id', 'desc')
+            ->paginate($limit, false, [
+                'page' => $page
+            ]);
+
+        $this->success('', [
+            'list' => $result->items(),
+            'total' => $result->total()
+        ]);
+    }
+
+    /**
+     * 添加品牌黑名单
+     */
+    public function addBrandBlacklist()
+    {
+        if (!$this->request->isPost()) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '仅支持 POST 请求'
+            ]);
+            return;
+        }
+
+        $request = $this->request;
+
+        $brandName = $request->post('brand_name', '', 'trim');
+        $site = $request->post('site', '', 'trim');
+        $remark = $request->post('remark', '', 'trim');
+
+        if (empty($brandName)) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '品牌名称不能为空'
+            ]);
+            return;
+        }
+
+        // 检查是否已存在相同的品牌名称和站点组合
+        $exists = Db::table('ba_brand_blacklist')
+            ->where('brand_name', $brandName)
+            ->where('site', $site)
+            ->find();
+
+        if ($exists) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '该品牌名称和站点组合已存在于黑名单中'
+            ]);
+            return;
+        }
+
+        // 获取当前登录用户信息
+        $admin = $this->auth->getAdmin();
+        $creatorId = $admin ? $admin->id : 0;
+        $creatorName = $admin ? $admin->username : '';
+
+        $data = [
+            'brand_name' => $brandName,
+            'site' => $site,
+            'creator_id' => $creatorId,
+            'creator_name' => $creatorName,
+            'create_time' => date('Y-m-d H:i:s'),
+            'remark' => $remark
+        ];
+
+        $result = Db::table('ba_brand_blacklist')->insert($data);
+        if (!$result) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '添加品牌黑名单失败'
+            ]);
+            return;
+        }
+
+        $this->success('操作成功', [
+            'code' => 200,
+            'desc' => '品牌黑名单已添加',
+            'brand_name' => $brandName,
+            'site' => $site
+        ]);
+    }
+
+    /**
+     * 删除品牌黑名单
+     */
+    public function deleteBrandBlacklist()
+    {
+        if (!$this->request->isPost()) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '仅支持 POST 请求'
+            ]);
+            return;
+        }
+
+        $id = $this->request->post('id', 0, 'intval');
+
+        if ($id <= 0) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => 'ID 无效'
+            ]);
+            return;
+        }
+
+        // 检查记录是否存在
+        $record = Db::table('ba_brand_blacklist')->where('id', $id)->find();
+        if (!$record) {
+            $this->success('操作失败', [
+                'code' => 404,
+                'desc' => '记录不存在'
+            ]);
+            return;
+        }
+
+        $result = Db::table('ba_brand_blacklist')->where('id', $id)->delete();
+        if (!$result) {
+            $this->success('操作失败', [
+                'code' => 400,
+                'desc' => '删除品牌黑名单失败'
+            ]);
+            return;
+        }
+
+        $this->success('操作成功', [
+            'code' => 200,
+            'desc' => '品牌黑名单已删除',
+            'id' => $id
+        ]);
     }
 }
