@@ -16,7 +16,7 @@ use app\common\library\Excel;
 class Index extends Backend
 {
     protected $noNeedLogin = ['logout', 'login', 'notice','getFBA','checkBrandName','checkBrand',"addTemuGoodsRecord","addPlugProductRecord","addPriceChangeRecord","addWithdrawRecord"];
-    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps","getPriceChangeRecord","exportPriceChangeRecord","addPriceChangeRecord","getWithdrawRecord","exportWithdrawRecord","addWithdrawRecord"];
+    protected $noNeedPermission = ['index', 'bulletin', 'notice', 'checkBrandName','getFBA',"checkChromePlugVersion","exportTemuGoodsRecord","getTemuGoodsRecord","addTemuGoodsRecord","addPlugProductRecord", "addPlugProductBrowsingHistory", "getPlugProductRecord","exportPlugProductRecord","getTeamArea","addTeamArea","editTeamArea","setFavoritePlugProduct","addOtp","editOtp","getOtps","getPriceChangeRecord","exportPriceChangeRecord","getPriceChangeRecordById","addPriceChangeRecord","getWithdrawRecord","exportWithdrawRecord","addWithdrawRecord"];
 
     public function index()
     {
@@ -451,6 +451,7 @@ class Index extends Backend
 
         Excel::export($exportExcel, true, $result->items(), 'Temu商品列表');
     }
+    
     public function getPriceChangeRecord()
     {
         $page = $this->request->get('page');
@@ -503,7 +504,7 @@ class Index extends Backend
             $query = $query->where('a.status', intval($status));
         }
         if (!empty($sku)) {
-            $query = $query->where('a.sku', $sku);
+            $query = $query->where('a.sku','like', '%'.$sku.'%');
         }
         if (!empty($storeName)) {
             $query = $query->where('a.store_name','like', '%'.$storeName.'%');
@@ -512,7 +513,7 @@ class Index extends Backend
             $query = $query->where('a.sales_status', $salesStatus);
         }
         if (!empty($asin)) {
-            $query = $query->where('a.asin', $asin);
+            $query = $query->where('a.asin','like','%'.$asin.'%');
         }
         if (!empty($regionName)) {
             $query = $query->where('a.region_name', $regionName);
@@ -546,7 +547,7 @@ class Index extends Backend
             $query = $query->where('a.stock', '<=', intval($stockMax));
         }
 
-        if (!empty($groupBySku)) {
+         if (!empty($groupBySku)) {
             $countField = 'count(a.id)';
             if ($type == 2) {
                 $countField = 'count(distinct a.stock)';
@@ -585,6 +586,37 @@ class Index extends Backend
             'list' => $result->items(),
             'total' => $result->total(),
             'sql' => $sql,
+        ]);
+    }
+
+    public function getPriceChangeRecordById()
+    {
+        $id = $this->request->get('id');
+        if (empty($id) || !is_numeric($id)) {
+            $this->success('', [
+                'code' => 400,
+                'desc' => 'id 无效'
+            ]);
+            return;
+        }
+
+        $record = Db::table('ba_price_change_record')
+            ->alias('a')
+            ->field('a.*')
+            ->where('a.id', intval($id))
+            ->find();
+
+        if (!$record) {
+            $this->success('', [
+                'code' => 404,
+                'desc' => '记录不存在'
+            ]);
+            return;
+        }
+
+        $this->success('', [
+            'code' => 200,
+            'data' => $record
         ]);
     }
 
@@ -634,16 +666,16 @@ class Index extends Backend
             $query = $query->where('a.status', intval($status));
         }
         if (!empty($sku)) {
-            $query = $query->where('a.sku', $sku);
+            $query = $query->where('a.sku','like', '%'.$sku.'%');
         }
         if (!empty($storeName)) {
-            $query = $query->where('a.store_name', $storeName);
+            $query = $query->where('a.store_name', 'like','%'.$storeName.'%');
         }
         if (!empty($salesStatus)) {
             $query = $query->where('a.sales_status', $salesStatus);
         }
         if (!empty($asin)) {
-            $query = $query->where('a.asin', $asin);
+            $query = $query->where('a.asin','like','%'.$asin.'%');
         }
         if (!empty($regionName)) {
             $query = $query->where('a.region_name', $regionName);
@@ -795,6 +827,7 @@ class Index extends Backend
             'store_name' => $store_name
         ]);
     }
+    
     public function getWithdrawRecord()
     {
         $page = $this->request->get('page');
@@ -808,7 +841,6 @@ class Index extends Backend
         $operatorUsername = $this->request->get('operator_username', '');
         $amountMin        = $this->request->get('amount_min', '');
         $amountMax        = $this->request->get('amount_max', '');
-
         $groupByStoreName        = $this->request->get('group_by_store_name', '');
 
         $query = Db::table('ba_withdraw_record')
@@ -844,10 +876,11 @@ class Index extends Backend
         if ($amountMax !== '' && is_numeric($amountMax)) {
             $query = $query->where('a.amount', '<=', floatval($amountMax));
         }
-
+        
         if (!empty($groupByStoreName)) {
             $query = $query->group('a.store_name')->field('count(a.id) as count');
         }
+        
 
         $result = $query
             ->order('a.id', 'desc')
@@ -871,6 +904,7 @@ class Index extends Backend
         $operatorUsername = $this->request->get('operator_username', '');
         $amountMin        = $this->request->get('amount_min', '');
         $amountMax        = $this->request->get('amount_max', '');
+        
 
         $query = Db::table('ba_withdraw_record')
             ->alias('a')
@@ -1001,7 +1035,7 @@ class Index extends Backend
             'desc' => '提现记录已添加'
         ]);
     }
-
+    
     public function addTemuGoodsRecord()
     {
         if (!$this->request->isPost()) {
@@ -1473,7 +1507,7 @@ class Index extends Backend
        ]);
    }
 
-   public function editOtp()
+    public function editOtp()
    {
        if ($this->request->isPost()) {
            $request = $this->request;
@@ -1545,6 +1579,7 @@ class Index extends Backend
            'desc' => "only support post"
        ]);
    }
+
 
     public function getTeamArea(){
         $page = $this->request->get('page');
