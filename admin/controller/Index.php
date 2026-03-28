@@ -2005,7 +2005,7 @@ class Index extends Backend
 
          //218.207.100.xxx---218.207.150.xxx
         //61.154.100.91--61.154.120.91
-        $iparr = array("218.207","61.154");
+        $iparr = array("218.204","61.152");
         $randipArr = array(array(100,150),array(100,120));
         $onerand = rand(0,1);
         $ip = $iparr[$onerand].".".rand($randipArr[$onerand][0],$randipArr[$onerand][1]).".".rand(10,249);
@@ -2025,7 +2025,7 @@ class Index extends Backend
             'pragma:no-cache',
             'priority:u=1, i',
             'referer:https://branddb.wipo.int',
-            'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
+            'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
         );
 
         $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header);
@@ -2647,13 +2647,17 @@ class Index extends Backend
         $creatorId = $this->request->get('creator_id', '');
         $createTimeStart = $this->request->get('create_time_start', '');
         $createTimeEnd = $this->request->get('create_time_end', '');
-
+        $likeBrandName = $this->request->get('like_brand_name', '');
+        
         $query = Db::table('ba_brand_blacklist')
             ->alias('a')
             ->field('a.*');
-
+            
+        if (!empty($likeBrandName)) {
+            $query = $query->where('a.brand_name', 'like', '%' . $likeBrandName . '%');
+        }
         if (!empty($brandName)) {
-            $query = $query->where('a.brand_name', 'like', '%' . $brandName . '%');
+            $query = $query->where('a.brand_name', $brandName);
         }
         if (!empty($site)) {
             $query = $query->where('a.site', $site);
