@@ -2021,21 +2021,28 @@ class Index extends Backend
             'CLIENT-IP:'.$ip,
             'X-FORWARDED-FOR:'.$ip,
             'hashsearch:'.$hashsearch,
-            'origin:https://branddb.wipo.int',
-            'pragma:no-cache',
-            'priority:u=1, i',
-            'referer:https://branddb.wipo.int',
-            'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
+            'accept: application/json, text/plain, */ *',
+            'accept-language: zh-CN,zh;q=0.9,et;q=0.8',
+            'cache-control: no-cache',
+            'content-type: application/json',
+            'origin: https://branddb.wipo.int',
+            'pragma: no-cache',
+            'priority: u=1, i',
+            'referer: https://branddb.wipo.int/',
+            'sec-ch-ua: "Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
+            'sec-ch-ua-mobile: ?0',
+            'sec-ch-ua-platform: "macOS"',
+            'sec-fetch-dest: empty',
+            'sec-fetch-mode: cors',
+            'sec-fetch-site: same-site',
+            'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
         );
 
-        $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header);
+        // 获取随机代理
+        $randomProxy = $this->getRandomProxy();
         
-        
-        // $randomProxy = $this->getRandomProxy();
-        // // 请求参数
-        // $url = 'https://api.branddb.wipo.int/search';
-        // // 发送请求
-        // $getResult = $this->postRequest($url, $params, $header, $randomProxy);
+        // 发送请求（使用代理）
+        $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header,$randomProxy);
         
          
 
@@ -2396,7 +2403,7 @@ class Index extends Backend
        
     }
 
-    public function sendPostRequest($url,$postData,$header=[]){
+    public function sendPostRequest($url,$postData,$header=[],$proxy=null){
         $postDataJson = json_encode($postData);  
         
         $defaultHeader=[  
@@ -2412,7 +2419,17 @@ class Index extends Backend
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);  
         curl_setopt($ch, CURLOPT_POST, true);  
         curl_setopt($ch, CURLOPT_HTTPHEADER, $allHeaders);  
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson); 
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson);
+        
+        // 代理配置
+        if ($proxy) {
+            curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+            curl_setopt($ch, CURLOPT_PROXY, $proxy['ip'] . ':' . $proxy['port']);
+            
+            if (!empty($proxy['user']) && !empty($proxy['pass'])) {
+                curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxy['user'] . ':' . $proxy['pass']);
+            }
+        }
 
         $result = curl_exec($ch);  
         curl_close($ch);  
