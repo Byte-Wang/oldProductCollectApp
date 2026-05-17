@@ -2243,6 +2243,13 @@ class Index extends Backend
             return;
         }
 
+        $cacheKey = "checkBrandName_" . md5($brand . "_" . $region);
+        $cachedData = Cache::get($cacheKey);
+        if ($cachedData) {
+            $this->success('', $cachedData);
+            return;
+        }
+
         if ($region == 'au') {
 
             $url = "https://search.ipaustralia.gov.au/trademarks/search/count/quick?q=".urlencode($brand);  
@@ -2256,13 +2263,15 @@ class Index extends Backend
             curl_setopt($ch, CURLOPT_HEADER, false);        // 不需要响应头  
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 对认证证书来源的检查，0 表示阻止对证书合法性的检查  
             curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'); // 设置 User-Agent  
-            curl_setopt($ch, CURLOPT_TIMEOUT, 10);           // 设置超时限制防止死循环  
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);     // 连接超时 5 秒
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);           // 设置超时限制防止死循环  
             
             // 执行 cURL 会话  
             $response = curl_exec($ch);  
             
             // 检查是否有错误发生  
             if(curl_errno($ch)){  
+                curl_close($ch);
                 $this->success('', [
                     'code' => 400,
                     'brand' => $brand,
@@ -2280,13 +2289,15 @@ class Index extends Backend
             if ($response !== false) {  
                 $resultObj = json_decode($response,true);
                 if (isset($resultObj['count'])) {
-                    $this->success('', [
+                    $resData = [
                         'code' => 200,
                         'brand' => $brand,
                         'region' => $region,
                         'result' => $resultObj,
                         'count' => $resultObj['count']
-                    ]);
+                    ];
+                    Cache::set($cacheKey, $resData, 259200); // 缓存 72 小时
+                    $this->success('', $resData);
                 } else {
                     $this->success('', [
                         'code' => 400,
@@ -2330,21 +2341,36 @@ class Index extends Backend
                 'Content-Length: ' . strlen($postDataJson)  
             ]);  
             curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson); 
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10); // 连接超时 5 秒
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);        // 总超时 10 秒
  
             $result = curl_exec($ch);  
+            if(curl_errno($ch)){  
+                curl_close($ch);
+                $this->success('', [
+                    'code' => 400,
+                    'brand' => $brand,
+                    'region' => $region,
+                    'resule' => null,
+                    'desc' => "接口请求超时或失败"
+                ]);
+                return;
+            }
             curl_close($ch);  
  
             
             $resultObj = json_decode($result,true);
             
             if (isset($resultObj['numFound'])) {
-                $this->success('', [
+                $resData = [
                     'code' => 200,
                     'brand' => $brand,
                     'region' => $region,
                     'result' => $resultObj,
                     'count' => $resultObj['numFound']
-                ]);
+                ];
+                Cache::set($cacheKey, $resData, 259200); // 缓存 72 小时
+                $this->success('', $resData);
             } else {
                 $this->success('', [
                     'code' => 400,
@@ -2426,6 +2452,8 @@ class Index extends Backend
         curl_setopt($ch, CURLOPT_POST, true);  
         curl_setopt($ch, CURLOPT_HTTPHEADER, $allHeaders);  
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         
         // 代理配置
         if ($proxy) {
@@ -2453,6 +2481,7 @@ class Index extends Backend
             curl_setopt($ch, CURLOPT_HEADER, false);        // 不需要响应头  
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 对认证证书来源的检查，0 表示阻止对证书合法性的检查  
             curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'); // 设置 User-Agent  
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);     // 连接超时 5 秒
             curl_setopt($ch, CURLOPT_TIMEOUT, 10);           // 设置超时限制防止死循环  
             // curl_setopt($ch, CURLOPT_HTTPHEADER, [
             //     'X-Forwarded-For: 123.45.67.89', // 伪造的 IP 地址
