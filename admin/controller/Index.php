@@ -1391,7 +1391,6 @@ class Index extends Backend
        $team_area_id = $this->request->get('team_area_id');
        $store_name = $this->request->get('store_name');
        $acount = $this->request->get('acount');
-
        
        $admin = $this->auth->getAdmin();
        $currentTeamArea = $admin->belong_team_area_id;
@@ -1422,7 +1421,7 @@ class Index extends Backend
         if ($permissionId && $permissionId != '') {
             $permissionIdWhere = 'a.permission_admin_ids like "%'.$permissionId.',%"';
         }
-
+        
         $acountWhere = '';
         if ($acount && $acount != '') {
             $acountWhere = 'a.acount like "%'.$acount.'%"';
@@ -1994,7 +1993,7 @@ class Index extends Backend
         } else if (strtoupper($region) == 'CA') {
             $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Terms\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"CA\",\"label\":\"(CA) Canada\",\"score\":194,\"highlighted\":\"(<em>CA</em>) <em>Ca</em>nada\"}]}]}";
         } else if (strtoupper($region) == 'UK') {
-            $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Terms\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"GB\",\"label\":\"(GB) UK\",\"score\":95,\"highlighted\":\"(GB) <em>UK</em>\"}]}]}";
+            $searchParams = "{\"_id\":\"5f21\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"5f22\",\"key\":\"brandName\",\"value\":\"".$brand."\",\"strategy\":\"Terms\"},{\"_id\":\"5f25\",\"key\":\"designation\",\"value\":[{\"value\":\"GB\",\"label\":\"(GB) 英国\",\"score\":99,\"highlighted\":\"(<em>GB</em>) 英国\"}],\"strategy\":\"any_of\"}]}";
         } else if (strtoupper($region) == 'JP') {
             $searchParams = "{\"_id\":\"0ffa\",\"boolean\":\"AND\",\"bricks\":[{\"_id\":\"0ffb\",\"key\":\"brandName\",\"strategy\":\"Terms\",\"value\":\"".$brand."\"},{\"_id\":\"0ffc\",\"key\":\"designation\",\"strategy\":\"all_of\",\"value\":[{\"value\":\"JP\",\"label\":\"(JP) Japan\",\"score\":99,\"highlighted\":\"(<em>JP</em>) Japan\"}]}]}";
         } else if (strtoupper($region) == 'US') {
@@ -2046,7 +2045,7 @@ class Index extends Backend
         );
 
         // 获取随机代理
-        $randomProxy = $this->getRandomProxy();
+        $randomProxy = null;//$this->getRandomProxy();
         
         // 发送请求（使用代理）
         $getResult = $this->sendPostRequest('https://api.branddb.wipo.int/search',$params,$header,$randomProxy);
@@ -2054,10 +2053,10 @@ class Index extends Backend
          
 
         if (!is_string($getResult) || !base64_decode($getResult, true)) {  
-            if ($retryTimes > 0) {
-                $this->checkBrandByWipo($reqParams, $retryTimes - 1);
-                return;
-            }
+            // if ($retryTimes > 0) {
+            //     $this->checkBrandByWipo($reqParams, $retryTimes - 1);
+            //     return;
+            // }
             $this->success('', [
                 'code' => 400,
                 'brand' => $brand,
