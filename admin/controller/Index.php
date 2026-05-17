@@ -1390,6 +1390,7 @@ class Index extends Backend
        $permissionId = $this->request->get('permissionId');
        $team_area_id = $this->request->get('team_area_id');
        $store_name = $this->request->get('store_name');
+       $acount = $this->request->get('acount');
 
        
        $admin = $this->auth->getAdmin();
@@ -1421,6 +1422,11 @@ class Index extends Backend
         if ($permissionId && $permissionId != '') {
             $permissionIdWhere = 'a.permission_admin_ids like "%'.$permissionId.',%"';
         }
+
+        $acountWhere = '';
+        if ($acount && $acount != '') {
+            $acountWhere = 'a.acount like "%'.$acount.'%"';
+        }
        
        $result = Db::table('ba_otp')
            ->alias('a')
@@ -1433,6 +1439,7 @@ class Index extends Backend
            ->where($searchWhere)
            ->where($permissionIdWhere)
            ->where($store_nameWhere)
+           ->where($acountWhere)
            ->paginate($limit, false, [
                'page'  => $page
            ]);
